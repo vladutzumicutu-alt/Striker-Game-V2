@@ -2,508 +2,1293 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Galerie</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>STRIKER</title>
 <style>
-  :root{
-    --bg: #1B1F1A;
-    --surface: #242920;
-    --surface-hover: #2C3226;
-    --ink: #EDEAE0;
-    --ink-muted: #9C9C8E;
-    --brass: #B08D57;
-    --brass-dim: #8A6E44;
-    --danger: #8B3A3A;
-    --radius: 3px;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--ink);
-    font-family:'Inter', sans-serif;
-    min-height:100vh;
-  }
-  ::selection{ background:var(--brass); color:#14120F; }
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#080c10;--surface:#0f1620;--surface2:#162030;
+  --border:#1e3050;--accent:#00d4ff;--accent2:#ff6b00;
+  --red:#ff2244;--green:#00cc66;--gold:#ffcc00;
+  --text:#cdd6f4;--muted:#6c7a8e;
+}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;}
+canvas{position:fixed;top:0;left:0;display:block;}
 
-  header{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    padding:2.5rem 2rem 1.5rem;
-    border-bottom:1px solid #33392C;
-    max-width:1200px;
-    margin:0 auto;
-  }
-  header h1{
-    font-family:'Fraunces', serif;
-    font-weight:500;
-    font-size:1.8rem;
-    letter-spacing:0.01em;
-    margin:0;
-    cursor:pointer;
-  }
-  header .meta{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:0.72rem;
-    color:var(--ink-muted);
-    letter-spacing:0.03em;
-  }
-  #admin-toggle{
-    background:none;
-    border:1px solid #3D4433;
-    color:var(--ink-muted);
-    font-family:'IBM Plex Mono', monospace;
-    font-size:0.7rem;
-    padding:0.4rem 0.8rem;
-    border-radius:var(--radius);
-    cursor:pointer;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-  }
-  #admin-toggle:hover{ border-color:var(--brass); color:var(--brass); }
-  #admin-toggle.active{ border-color:var(--brass); color:var(--brass); background:rgba(176,141,87,0.08); }
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,16,0.97);}
+.screen.active{display:flex;}
 
-  main{ max-width:1200px; margin:0 auto; padding:2rem; }
+/* ── MAIN MENU ── */
+#menu{gap:0;}
+.menu-bg{position:absolute;inset:0;overflow:hidden;}
+.menu-bg canvas{position:absolute;}
+.menu-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px;}
+.game-title{font-size:52px;font-weight:900;letter-spacing:10px;color:#fff;text-shadow:0 0 40px var(--accent),0 0 80px rgba(0,212,255,.3);}
+.game-sub{font-size:11px;letter-spacing:6px;color:var(--accent);margin-top:-8px;margin-bottom:8px;}
+.menu-btn{padding:12px 36px;font-size:14px;letter-spacing:3px;font-family:inherit;border:none;border-radius:4px;cursor:pointer;transition:all .15s;}
+.menu-btn.primary{background:var(--accent);color:#000;font-weight:bold;box-shadow:0 0 20px rgba(0,212,255,.4);}
+.menu-btn.primary:hover,.menu-btn.primary:active{background:#fff;box-shadow:0 0 30px rgba(0,212,255,.7);}
+.menu-btn.secondary{background:transparent;color:var(--text);border:1px solid var(--border);}
+.menu-btn.secondary:hover,.menu-btn.secondary:active{border-color:var(--accent);color:var(--accent);}
+.version{font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:8px;}
 
-  /* breadcrumb / back */
-  #breadcrumb{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:0.75rem;
-    color:var(--ink-muted);
-    margin-bottom:1.5rem;
-    display:none;
-  }
-  #breadcrumb button{
-    background:none; border:none; color:var(--brass);
-    cursor:pointer; font-family:inherit; font-size:inherit; padding:0;
-  }
+/* ── CUSTOMIZE SCREEN ── */
+#customize{padding:0;background:var(--bg);}
+.cust-layout{display:flex;width:100%;max-width:700px;flex-direction:column;gap:0;}
+.cust-header{padding:16px 20px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.cust-header h2{font-size:14px;letter-spacing:4px;color:var(--accent);}
+.close-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;}
 
-  /* album grid */
-  #album-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
-    gap:2.2rem 1.8rem;
-  }
-  .album-card{ cursor:pointer; }
-  .stack{
-    position:relative;
-    aspect-ratio:1/1;
-    margin-bottom:0.9rem;
-  }
-  .stack .ph{
-    position:absolute; inset:0;
-    background:var(--surface);
-    background-size:cover;
-    background-position:center;
-    border-radius:var(--radius);
-    border:1px solid #33392C;
-    transition:transform 0.25s ease;
-  }
-  .stack .ph:nth-child(1){ transform:rotate(-4deg) translate(-4px,2px); z-index:1;}
-  .stack .ph:nth-child(2){ transform:rotate(3deg) translate(3px,-2px); z-index:2;}
-  .stack .ph:nth-child(3){ transform:rotate(0deg); z-index:3;}
-  .album-card:hover .stack .ph:nth-child(1){ transform:rotate(-8deg) translate(-9px,4px); }
-  .album-card:hover .stack .ph:nth-child(2){ transform:rotate(7deg) translate(7px,-4px); }
-  .album-card:hover .stack .ph:nth-child(3){ transform:translateY(-4px); }
-  .stack .empty-icon{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    color:var(--ink-muted); font-size:0.7rem; font-family:'IBM Plex Mono', monospace;
-    background:var(--surface); border-radius:var(--radius); border:1px dashed #3D4433;
-  }
-  .album-title{
-    font-family:'Fraunces', serif;
-    font-size:1.15rem;
-    font-weight:500;
-  }
-  .album-count{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:0.7rem;
-    color:var(--ink-muted);
-    margin-top:0.2rem;
-  }
-  .album-delete{
-    background:none; border:none; color:var(--danger);
-    font-family:'IBM Plex Mono', monospace; font-size:0.65rem;
-    cursor:pointer; margin-top:0.3rem; padding:0; opacity:0.7;
-  }
-  .album-delete:hover{ opacity:1; text-decoration:underline; }
+.cust-body{display:flex;gap:0;height:calc(100vh - 110px);overflow:hidden;}
+.cust-preview{width:140px;min-width:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-right:1px solid var(--border);padding:16px 8px;}
+.preview-canvas-wrap{width:100px;height:120px;position:relative;}
+#preview-canvas{width:100px;height:120px;}
+.cust-name-input{background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:6px 10px;border-radius:4px;width:110px;text-align:center;}
+.cust-name-input:focus{outline:none;border-color:var(--accent);}
 
-  /* photo grid inside album */
-  #photo-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
-    gap:1rem;
-  }
-  .photo-cell{
-    position:relative;
-    aspect-ratio:1/1;
-    border-radius:var(--radius);
-    overflow:hidden;
-    border:1px solid #33392C;
-    cursor:pointer;
-    background:var(--surface);
-  }
-  .photo-cell img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .photo-delete{
-    position:absolute; top:6px; right:6px;
-    background:rgba(20,18,15,0.75);
-    color:var(--danger); border:none; border-radius:2px;
-    font-family:'IBM Plex Mono', monospace; font-size:0.65rem;
-    padding:2px 6px; cursor:pointer; opacity:0; transition:opacity 0.15s;
-  }
-  .photo-cell:hover .photo-delete{ opacity:1; }
+.cust-options{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:16px;}
+.cust-section{display:flex;flex-direction:column;gap:8px;}
+.cust-section label{font-size:9px;letter-spacing:3px;color:var(--muted);}
+.shape-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.shape-opt{padding:8px 4px;border:1px solid var(--border);border-radius:4px;cursor:pointer;text-align:center;font-size:10px;color:var(--muted);transition:all .12s;}
+.shape-opt.sel{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.08);}
+.color-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.color-opt{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s;}
+.color-opt.sel{border-color:#fff;transform:scale(1.15);}
+.skin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.skin-opt{padding:8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;text-align:center;font-size:9px;color:var(--muted);transition:all .12s;}
+.skin-opt.sel{border-color:var(--accent2);color:var(--accent2);background:rgba(255,107,0,.08);}
 
-  /* lightbox */
-  #lightbox{
-    position:fixed; inset:0; background:rgba(14,13,10,0.94);
-    display:none; align-items:center; justify-content:center;
-    z-index:100; padding:2rem;
-  }
-  #lightbox img{ max-width:100%; max-height:88vh; border-radius:2px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
-  #lightbox .close{
-    position:absolute; top:1.5rem; right:2rem;
-    color:var(--ink-muted); font-family:'IBM Plex Mono', monospace;
-    font-size:0.8rem; cursor:pointer; background:none; border:none;
-  }
-  #lightbox .close:hover{ color:var(--brass); }
+.cust-footer{border-top:1px solid var(--border);padding:12px 20px;display:flex;justify-content:flex-end;gap:10px;}
+.btn-confirm{padding:10px 28px;background:var(--green);color:#000;font-weight:bold;font-size:13px;letter-spacing:2px;font-family:inherit;border:none;border-radius:4px;cursor:pointer;}
 
-  /* forms / admin panels */
-  .panel{
-    background:var(--surface);
-    border:1px solid #33392C;
-    border-radius:var(--radius);
-    padding:1.5rem;
-    margin-bottom:2rem;
-  }
-  .panel h3{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:0.75rem;
-    text-transform:uppercase;
-    letter-spacing:0.05em;
-    color:var(--ink-muted);
-    margin:0 0 1rem;
-  }
-  .row{ display:flex; gap:0.7rem; flex-wrap:wrap; align-items:center; }
-  input[type=text], input[type=email], input[type=password]{
-    background:var(--bg);
-    border:1px solid #3D4433;
-    color:var(--ink);
-    padding:0.6rem 0.8rem;
-    border-radius:var(--radius);
-    font-family:'Inter', sans-serif;
-    font-size:0.85rem;
-    flex:1;
-    min-width:160px;
-  }
-  input:focus{ outline:1px solid var(--brass); border-color:var(--brass); }
-  button.primary{
-    background:var(--brass);
-    color:#14120F;
-    border:none;
-    padding:0.6rem 1.1rem;
-    border-radius:var(--radius);
-    font-family:'Inter', sans-serif;
-    font-weight:600;
-    font-size:0.82rem;
-    cursor:pointer;
-  }
-  button.primary:hover{ background:#C29B63; }
-  button.primary:disabled{ opacity:0.5; cursor:not-allowed; }
-  button.ghost{
-    background:none; border:1px solid #3D4433; color:var(--ink-muted);
-    padding:0.6rem 1rem; border-radius:var(--radius); cursor:pointer;
-    font-family:'Inter', sans-serif; font-size:0.82rem;
-  }
-  button.ghost:hover{ border-color:var(--brass); color:var(--brass); }
+/* ── SHOP SCREEN ── */
+#shop{padding:0;background:var(--bg);}
+.shop-layout{width:100%;max-width:700px;display:flex;flex-direction:column;height:100vh;}
+.shop-header{padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.shop-header h2{font-size:14px;letter-spacing:4px;color:var(--gold);}
+.money-display{font-size:16px;color:var(--gold);letter-spacing:1px;}
+.money-display span{font-size:11px;color:var(--muted);}
+.shop-tabs{display:flex;border-bottom:1px solid var(--border);}
+.shop-tab{flex:1;padding:10px;font-family:inherit;font-size:10px;letter-spacing:2px;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;}
+.shop-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.shop-items{flex:1;overflow-y:auto;padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.shop-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .12s;}
+.shop-item:hover{border-color:var(--gold);}
+.shop-item.owned{border-color:var(--green);opacity:.7;cursor:default;}
+.shop-item.equipped{border-color:var(--accent);background:rgba(0,212,255,.06);}
+.shop-item.cant-afford{opacity:.4;cursor:default;}
+.item-icon{font-size:26px;text-align:center;}
+.item-name{font-size:11px;font-weight:bold;color:#fff;letter-spacing:1px;}
+.item-desc{font-size:9px;color:var(--muted);line-height:1.5;}
+.item-stats{display:flex;flex-direction:column;gap:2px;}
+.item-stat{display:flex;justify-content:space-between;font-size:9px;}
+.item-stat .label{color:var(--muted);}
+.item-stat .val{color:var(--accent);}
+.item-price{font-size:12px;color:var(--gold);font-weight:bold;margin-top:4px;}
+.item-price.free{color:var(--green);}
+.item-badge{font-size:8px;padding:2px 6px;border-radius:3px;align-self:flex-start;margin-top:2px;}
+.badge-owned{background:rgba(0,204,102,.15);color:var(--green);}
+.badge-equipped{background:rgba(0,212,255,.15);color:var(--accent);}
+.shop-footer{border-top:1px solid var(--border);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;}
+.shop-footer .hint{font-size:9px;color:var(--muted);}
 
-  #upload-drop{
-    border:1px dashed #3D4433;
-    border-radius:var(--radius);
-    padding:2rem;
-    text-align:center;
-    color:var(--ink-muted);
-    font-family:'IBM Plex Mono', monospace;
-    font-size:0.78rem;
-    cursor:pointer;
-    margin-top:1rem;
-  }
-  #upload-drop.drag{ border-color:var(--brass); color:var(--brass); }
+/* ── HUD ── */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:5;}
 
-  .status{ font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--ink-muted); margin-top:0.6rem; }
-  .empty-state{
-    text-align:center; padding:4rem 1rem; color:var(--ink-muted);
-    font-family:'IBM Plex Mono', monospace; font-size:0.8rem;
-  }
+/* Top bar */
+#top-bar{position:absolute;top:0;left:0;right:0;height:44px;background:linear-gradient(180deg,rgba(8,12,16,.9),transparent);display:flex;align-items:center;justify-content:space-between;padding:8px 14px;}
+.hud-money{font-size:13px;color:var(--gold);letter-spacing:1px;}
+.hud-money span{font-size:10px;color:var(--muted);}
+.hud-wave{font-size:11px;color:var(--muted);letter-spacing:2px;text-align:center;}
+.hud-wave b{color:#fff;font-size:14px;}
+.hud-score{font-size:13px;color:var(--accent);letter-spacing:1px;text-align:right;}
+
+/* Bars */
+#bar-area{position:absolute;bottom:190px;left:14px;right:14px;display:flex;flex-direction:column;gap:5px;pointer-events:none;}
+.bar-row{display:flex;align-items:center;gap:8px;}
+.bar-label{font-size:8px;letter-spacing:2px;color:var(--muted);width:42px;text-align:right;}
+.bar-track{flex:1;height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .2s;}
+#hp-fill{background:linear-gradient(90deg,#ff2244,#ff6644);}
+#armor-fill{background:linear-gradient(90deg,#2288ff,#44aaff);}
+
+/* Weapon HUD */
+#weapon-hud{position:absolute;bottom:190px;right:14px;text-align:right;}
+#weapon-name{font-size:11px;color:#fff;letter-spacing:2px;margin-bottom:3px;}
+#ammo-display{font-size:22px;color:#fff;font-weight:bold;line-height:1;}
+#ammo-reserve{font-size:10px;color:var(--muted);}
+#reload-bar-wrap{margin-top:4px;display:none;}
+#reload-bar-bg{height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;}
+#reload-bar-fill{height:100%;background:var(--accent2);width:0%;border-radius:2px;}
+#reload-label{font-size:8px;color:var(--accent2);letter-spacing:2px;margin-top:2px;}
+
+/* Utility slots */
+#util-bar{position:absolute;bottom:190px;left:14px;display:flex;gap:6px;}
+.util-slot{width:44px;height:44px;background:var(--surface);border:1px solid var(--border);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;cursor:pointer;pointer-events:all;}
+.util-slot .u-icon{font-size:18px;}
+.util-slot .u-count{position:absolute;top:2px;right:4px;font-size:9px;color:var(--gold);}
+.util-slot .u-cd{position:absolute;inset:0;background:rgba(0,0,0,.65);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;display:none;}
+.util-slot.active-util{border-color:var(--accent2);}
+
+/* Active effect indicator */
+#active-effects{position:absolute;top:50px;right:14px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
+.effect-badge{font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:3px;display:flex;align-items:center;gap:5px;}
+.effect-timer{font-size:10px;color:#fff;font-weight:bold;}
+
+/* Kill / event feed */
+#feed{position:absolute;top:50px;left:14px;display:flex;flex-direction:column;gap:3px;}
+.feed-item{font-size:10px;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:3px;opacity:1;transition:opacity .3s;}
+
+/* Shop button */
+#shop-btn{position:absolute;bottom:190px;left:50%;transform:translateX(-50%);pointer-events:all;background:rgba(255,204,0,.12);border:1px solid rgba(255,204,0,.3);color:var(--gold);font-family:inherit;font-size:9px;letter-spacing:2px;padding:6px 14px;border-radius:4px;cursor:pointer;}
+
+/* Wave announce */
+#wave-banner{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;}
+#wave-banner h2{font-size:28px;letter-spacing:5px;color:#fff;text-shadow:0 0 30px var(--accent);}
+#wave-banner p{font-size:10px;letter-spacing:3px;color:var(--muted);margin-top:4px;}
+
+/* Hit marker */
+#hit-marker{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;opacity:0;pointer-events:none;}
+#hit-marker::before,#hit-marker::after{content:'';position:absolute;background:var(--red);}
+#hit-marker::before{width:2px;height:10px;top:0;left:12px;}
+#hit-marker::after{height:2px;width:10px;top:12px;left:0;}
+
+/* Damage vignette */
+#dmg-flash{position:absolute;inset:0;background:rgba(255,20,60,0);transition:background .1s;pointer-events:none;}
+
+/* ── MOBILE CONTROLS ── */
+#ctrl-left{position:fixed;bottom:0;left:0;width:50%;height:190px;z-index:6;}
+#joy-base{position:absolute;bottom:32px;left:44px;width:106px;height:106px;border-radius:50%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);pointer-events:none;}
+#joy-knob{position:absolute;top:50%;left:50%;width:42px;height:42px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.4),rgba(255,255,255,.1));transform:translate(-50%,-50%);pointer-events:none;}
+
+#ctrl-right{position:fixed;bottom:0;right:0;width:50%;height:190px;z-index:6;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 20px 28px;gap:12px;}
+.act-btn{width:68px;height:68px;border-radius:50%;border:none;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative;z-index:7;}
+#btn-shoot{background:radial-gradient(circle,#cc1122,#550008);border:2px solid var(--red);box-shadow:0 0 18px rgba(255,34,68,.4);}
+#btn-reload{background:radial-gradient(circle,#224488,#0a1830);border:2px solid #4488cc;box-shadow:0 0 14px rgba(68,136,204,.35);font-size:13px;letter-spacing:1px;color:#fff;width:52px;height:52px;align-self:flex-end;margin-bottom:8px;}
+#btn-util{background:radial-gradient(circle,#884400,#3a1a00);border:2px solid var(--accent2);box-shadow:0 0 14px rgba(255,107,0,.3);font-size:22px;width:52px;height:52px;align-self:flex-end;margin-bottom:8px;}
+
+/* Game over / between wave */
+#between-screen{position:fixed;inset:0;z-index:8;background:rgba(8,12,16,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+#between-screen h2{font-size:26px;letter-spacing:5px;color:#fff;}
+#between-screen .sub{font-size:11px;color:var(--muted);letter-spacing:3px;}
+#between-screen .earned{font-size:18px;color:var(--gold);}
+.bw-btn{padding:11px 30px;font-family:inherit;font-size:13px;letter-spacing:3px;border:none;border-radius:4px;cursor:pointer;}
+#bw-shop{background:rgba(255,204,0,.15);color:var(--gold);border:1px solid var(--gold);}
+#bw-continue{background:var(--accent);color:#000;font-weight:bold;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 </style>
 </head>
 <body>
 
-<header>
-  <h1 onclick="showAlbumGrid()">Galerie</h1>
-  <div class="row" style="gap:0.8rem;">
-    <span class="meta" id="header-meta"></span>
-    <button id="admin-toggle" onclick="toggleAdminPanel()">Admin</button>
+<canvas id="gc"></canvas>
+
+<!-- ── MAIN MENU ── -->
+<div id="menu" class="screen active">
+  <div class="menu-bg"><canvas id="menu-bg-canvas"></canvas></div>
+  <div class="menu-content">
+    <div class="game-title">STRIKER</div>
+    <div class="game-sub">TACTICAL SHOOTER</div>
+    <button class="menu-btn primary" onclick="goCustomize()">▶ NEW GAME</button>
+    <button class="menu-btn secondary" onclick="goCustomize()">PERSONALIZARE</button>
+    <button class="menu-btn secondary" onclick="openShop()">ARMURĂRIE</button>
+    <div class="version">v2.0 · DEMO</div>
   </div>
-</header>
+</div>
 
-<main>
-  <div id="breadcrumb"><button onclick="showAlbumGrid()">&larr; toate albumele</button></div>
-
-  <!-- LOGIN PANEL -->
-  <div class="panel" id="login-panel" style="display:none;">
-    <h3>Autentificare admin</h3>
-    <div class="row">
-      <input type="email" id="login-email" placeholder="email">
-      <input type="password" id="login-password" placeholder="parolă">
-      <button class="primary" onclick="login()">Intră</button>
+<!-- ── CUSTOMIZE SCREEN ── -->
+<div id="customize" class="screen">
+  <div class="cust-layout">
+    <div class="cust-header">
+      <h2>PERSONALIZARE PERSONAJ</h2>
+      <button class="close-btn" onclick="backToMenu()">✕</button>
     </div>
-    <div class="status" id="login-status"></div>
-  </div>
-
-  <!-- NEW ALBUM PANEL (admin only, album grid view) -->
-  <div class="panel" id="new-album-panel" style="display:none;">
-    <h3>Album nou</h3>
-    <div class="row">
-      <input type="text" id="new-album-title" placeholder="titlu album">
-      <button class="primary" onclick="createAlbum()">Creează</button>
+    <div class="cust-body">
+      <div class="cust-preview">
+        <canvas id="preview-canvas" width="100" height="120"></canvas>
+        <input class="cust-name-input" id="char-name" type="text" maxlength="12" value="STRIKER" placeholder="NUME">
+        <div style="font-size:8px;color:var(--muted);letter-spacing:1px;text-align:center;">PREVIEW</div>
+      </div>
+      <div class="cust-options">
+        <div class="cust-section">
+          <label>FORMĂ PERSONAJ</label>
+          <div class="shape-grid" id="shape-grid"></div>
+        </div>
+        <div class="cust-section">
+          <label>CULOARE PRINCIPALĂ</label>
+          <div class="color-grid" id="color-grid"></div>
+        </div>
+        <div class="cust-section">
+          <label>STIL / SKIN</label>
+          <div class="skin-grid" id="skin-grid"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cust-footer">
+      <button class="menu-btn secondary" onclick="backToMenu()">ÎNAPOI</button>
+      <button class="btn-confirm" onclick="startGame()">INTRĂ ÎN LUPTĂ →</button>
     </div>
   </div>
+</div>
 
-  <!-- UPLOAD PANEL (admin only, inside album view) -->
-  <div class="panel" id="upload-panel" style="display:none;">
-    <h3>Adaugă poze</h3>
-    <input type="file" id="file-input" accept="image/*" multiple style="display:none;" onchange="handleFiles(this.files)">
-    <div id="upload-drop" onclick="document.getElementById('file-input').click()">
-      click aici sau trage pozele în zona asta
+<!-- ── SHOP SCREEN ── -->
+<div id="shop" class="screen">
+  <div class="shop-layout">
+    <div class="shop-header">
+      <h2>ARMURĂRIE</h2>
+      <div class="money-display"><span>$</span><span id="shop-money">0</span></div>
     </div>
-    <div class="status" id="upload-status"></div>
+    <div class="shop-tabs">
+      <button class="shop-tab active" onclick="setShopTab('weapons')">ARME</button>
+      <button class="shop-tab" onclick="setShopTab('armor')">ARMURĂ</button>
+      <button class="shop-tab" onclick="setShopTab('utility')">UTILITĂȚI</button>
+    </div>
+    <div class="shop-items" id="shop-items"></div>
+    <div class="shop-footer">
+      <span class="hint">Tap pe item pentru cumpărare / echipare</span>
+      <button class="menu-btn secondary" onclick="closeShop()" style="padding:8px 20px;font-size:11px;">ÎNAPOI</button>
+    </div>
   </div>
+</div>
 
-  <div id="album-grid"></div>
-  <div id="photo-grid" style="display:none;"></div>
-</main>
+<!-- ── HUD ── -->
+<div id="hud" style="display:none;">
+  <div id="top-bar">
+    <div class="hud-money">$<span id="hud-money">0</span></div>
+    <div class="hud-wave">WAVE <b id="hud-wave">1</b></div>
+    <div class="hud-score">SCOR <b id="hud-score">0</b></div>
+  </div>
+  <div id="bar-area">
+    <div class="bar-row">
+      <div class="bar-label">HP</div>
+      <div class="bar-track"><div class="bar-fill" id="hp-fill" style="width:100%"></div></div>
+      <div style="font-size:10px;color:var(--muted);width:36px;" id="hp-txt">100</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">ARMOR</div>
+      <div class="bar-track"><div class="bar-fill" id="armor-fill" style="width:0%"></div></div>
+      <div style="font-size:10px;color:var(--muted);width:36px;" id="armor-txt">0</div>
+    </div>
+  </div>
+  <div id="util-bar"></div>
+  <div id="weapon-hud">
+    <div id="weapon-name">PISTOL</div>
+    <div id="ammo-display">12 / 12</div>
+    <div id="ammo-reserve">∞ rezervă</div>
+    <div id="reload-bar-wrap">
+      <div id="reload-bar-bg"><div id="reload-bar-fill"></div></div>
+      <div id="reload-label">RELOAD...</div>
+    </div>
+    <button id="switch-btn" onclick="switchWeapon()" style="margin-top:6px;background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);color:#00d4ff;font-family:inherit;font-size:9px;letter-spacing:2px;padding:5px 10px;border-radius:4px;cursor:pointer;pointer-events:all;width:100%;">⇄ SWITCH (Q)</button>
+    <div id="owned-weapons" style="margin-top:4px;display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;"></div>
+  </div>
+  <button id="shop-btn" onclick="openShop()">🛒 SHOP</button>
+  <div id="active-effects"></div>
+  <div id="feed"></div>
+  <div id="wave-banner"><h2 id="wave-banner-txt"></h2><p id="wave-banner-sub"></p></div>
+  <div id="hit-marker"></div>
+  <div id="dmg-flash"></div>
+</div>
 
-<div id="lightbox" onclick="closeLightbox(event)">
-  <button class="close" onclick="closeLightbox(event)">✕ închide</button>
-  <img id="lightbox-img" src="">
+<!-- Between waves -->
+<div id="between-screen">
+  <h2 id="bw-title">WAVE COMPLETAT!</h2>
+  <div class="sub" id="bw-sub">Inamici eliminați</div>
+  <div class="earned" id="bw-earned">+$0 câștigați</div>
+  <div style="display:flex;gap:12px;margin-top:8px;">
+    <button class="bw-btn" id="bw-shop" onclick="openShop()">🛒 SHOP</button>
+    <button class="bw-btn" id="bw-continue" onclick="continueWave()">NEXT WAVE →</button>
+  </div>
+</div>
+
+<!-- Mobile controls -->
+<div id="ctrl-left" style="display:none;">
+  <div id="joy-base"><div id="joy-knob"></div></div>
+</div>
+<div id="ctrl-right" style="display:none;">
+  <div id="btn-util" class="act-btn" onclick="useUtil()">💊</div>
+  <div style="display:flex;flex-direction:column;gap:8px;align-self:flex-end;margin-bottom:8px;">
+    <div id="btn-switch" class="act-btn" onclick="switchWeapon()" style="width:44px;height:44px;background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.4);font-size:14px;color:#00d4ff;border-radius:8px;">⇄</div>
+    <div id="btn-reload" class="act-btn" onclick="manualReload()" style="width:44px;height:44px;background:rgba(68,136,204,.2);border:1px solid #4488cc;font-size:16px;color:#fff;border-radius:8px;">↺</div>
+  </div>
+  <div id="btn-shoot" class="act-btn">🔫</div>
 </div>
 
 <script>
-/* ====== CONFIGURARE — completează cu datele proiectului tău Supabase ====== */
-const SUPABASE_URL = 'https://evufjupuvwpzzjvakqgp.supabase.co';
-const SUPABASE_ANON_KEY = 'cheia-ta-de-la-Settings-API';
-/* =========================================================================== */
+// ═══════════════════════════════════════════════════════════
+//  STRIKER v2 — Full RPG Shooter
+// ═══════════════════════════════════════════════════════════
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ── CONSTANTS ─────────────────────────────────────────────
+const SHAPES = [
+  {id:'circle', label:'Cerc', draw:(ctx,x,y,r,col)=>{ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();}},
+  {id:'square', label:'Pătrat', draw:(ctx,x,y,r,col)=>{ctx.fillStyle=col;ctx.fillRect(x-r,y-r,r*2,r*2);}},
+  {id:'triangle', label:'Triunghi', draw:(ctx,x,y,r,col)=>{ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y+r);ctx.lineTo(x-r,y+r);ctx.closePath();ctx.fillStyle=col;ctx.fill();}},
+  {id:'diamond', label:'Diamant', draw:(ctx,x,y,r,col)=>{ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();ctx.fillStyle=col;ctx.fill();}},
+  {id:'star', label:'Stea', draw:(ctx,x,y,r,col)=>{ctx.beginPath();for(let i=0;i<5;i++){const a=Math.PI/5*2*i-Math.PI/2;const a2=a+Math.PI/5;ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.lineTo(x+Math.cos(a2)*r*.4,y+Math.sin(a2)*r*.4);}ctx.closePath();ctx.fillStyle=col;ctx.fill();}},
+  {id:'hex', label:'Hex', draw:(ctx,x,y,r,col)=>{ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}ctx.closePath();ctx.fillStyle=col;ctx.fill();}},
+  {id:'cross', label:'Cruce', draw:(ctx,x,y,r,col)=>{ctx.fillStyle=col;ctx.fillRect(x-r*.35,y-r,r*.7,r*2);ctx.fillRect(x-r,y-r*.35,r*2,r*.7);}},
+  {id:'arrow', label:'Săgeată', draw:(ctx,x,y,r,col)=>{ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y+r*.4);ctx.lineTo(x+r*.3,y+r*.4);ctx.lineTo(x+r*.3,y+r);ctx.lineTo(x-r*.3,y+r);ctx.lineTo(x-r*.3,y+r*.4);ctx.lineTo(x-r,y+r*.4);ctx.closePath();ctx.fillStyle=col;ctx.fill();}},
+];
 
-let session = null;
-let currentAlbum = null;
-let albumsCache = [];
+const COLORS = ['#00d4ff','#ff2244','#00cc66','#ffcc00','#ff6b00','#aa44ff','#ff44aa','#ffffff','#44ffaa','#ff8822','#6699ff','#ff6666'];
 
-async function init(){
-  const { data } = await sb.auth.getSession();
-  session = data.session;
-  updateAdminUI();
-  await loadAlbums();
+const SKINS = [
+  {id:'default', label:'Clasic', outline:'rgba(255,255,255,.6)', glow:''},
+  {id:'neon', label:'Neon', outline:'rgba(0,255,200,.9)', glow:'0 0 12px rgba(0,255,200,.8)'},
+  {id:'stealth', label:'Stealth', outline:'rgba(80,80,120,.9)', glow:''},
+  {id:'fire', label:'Foc', outline:'rgba(255,120,0,.9)', glow:'0 0 14px rgba(255,80,0,.7)'},
+  {id:'ice', label:'Gheaţă', outline:'rgba(120,200,255,.9)', glow:'0 0 12px rgba(100,180,255,.6)'},
+  {id:'toxic', label:'Toxic', outline:'rgba(120,255,50,.9)', glow:'0 0 12px rgba(80,255,0,.5)'},
+];
+
+// ── WEAPONS DATABASE ──────────────────────────────────────
+const WEAPONS = [
+  {id:'pistol',  name:'PISTOL',    icon:'🔫', price:0,    owned:true,
+   dmg:18, rpm:180, mag:12, reload:1.2, spread:.08, range:280, pellets:1,
+   infinite:true,
+   desc:'Armă de start. Muniție INFINITĂ. Precizie bună.',
+   stats:{damage:'18',cadență:'180 rpm',magazie:'12 ∞',reload:'1.2s'}},
+  {id:'smg',    name:'SMG',       icon:'🔩', price:350,  owned:false,
+   dmg:12, rpm:600, mag:30, reload:1.8, spread:.18, range:220, pellets:1,
+   desc:'Cadență mare, raza medie. Ideal în spații strânse.',
+   stats:{damage:'12×2',cadență:'600 rpm',magazie:'30',reload:'1.8s'}},
+  {id:'shotgun',name:'SHOTGUN',   icon:'💥', price:500,  owned:false,
+   dmg:14, rpm:60,  mag:6,  reload:2.2, spread:.35, range:160, pellets:7,
+   desc:'7 alice per foc. Devastator la distanță mică.',
+   stats:{damage:'14×7',cadență:'60 rpm',magazie:'6',reload:'2.2s'}},
+  {id:'ak',     name:'AK-47',     icon:'⚡', price:800,  owned:false,
+   dmg:32, rpm:360, mag:30, reload:2.0, spread:.14, range:320, pellets:1,
+   desc:'Daune mari, raza lungă. Controllable recoil.',
+   stats:{damage:'32',cadență:'360 rpm',magazie:'30',reload:'2.0s'}},
+  {id:'sniper', name:'SNIPER',    icon:'🎯', price:1200, owned:false,
+   dmg:95, rpm:30,  mag:5,  reload:2.8, spread:.01, range:600, pellets:1,
+   desc:'One-shot pe orice inamic normal. Lent.',
+   stats:{damage:'95',cadență:'30 rpm',magazie:'5',reload:'2.8s'}},
+  {id:'minigun',name:'MINIGUN',   icon:'🌀', price:2000, owned:false,
+   dmg:8,  rpm:1200,mag:100,reload:3.5, spread:.28, range:200, pellets:1,
+   desc:'100 gloanțe, cadență uluitoare. Dominator.',
+   stats:{damage:'8',cadență:'1200 rpm',magazie:'100',reload:'3.5s'}},
+];
+
+// ── ARMOR DATABASE ────────────────────────────────────────
+const ARMORS = [
+  {id:'vest_light',  name:'VESTĂ UȘOARĂ',  icon:'🛡️', price:200, owned:false, armor:30,  desc:'30 HP armură. Absoarbe 40% din damage.'},
+  {id:'vest_medium', name:'VESTĂ TACTICĂ', icon:'🦺', price:500, owned:false, armor:60,  desc:'60 HP armură. Absoarbe 55% din damage.'},
+  {id:'vest_heavy',  name:'ARMURĂ GREA',   icon:'⚔️', price:900, owned:false, armor:100, desc:'100 HP armură. Absoarbe 70% din damage.'},
+  {id:'helmet',      name:'CASCĂ',         icon:'⛑️', price:300, owned:false, armor:20,  desc:'+20 HP armură extra. Se poate combina cu vesta.'},
+];
+
+// ── UTILITY DATABASE ──────────────────────────────────────
+const UTILITIES = [
+  {id:'heal',   name:'POȚIUNE HEAL',   icon:'💊', price:80,  owned:0, maxOwn:5,
+   cd:0, effect:'heal', value:40, duration:0,
+   desc:'Restaurează 40 HP instant.',
+   stats:{heal:'+40 HP',cooldown:'0s',max:'5 bucăți'}},
+  {id:'speed',  name:'BOOST VITEZĂ',   icon:'⚡', price:120, owned:0, maxOwn:3,
+   cd:0, effect:'speed', value:1.8, duration:8000,
+   desc:'Viteză ×1.8 timp de 8 secunde.',
+   stats:{efect:'×1.8 viteză',durată:'8s',max:'3 bucăți'}},
+  {id:'shield', name:'CÂMP DE FORȚĂ',  icon:'🔮', price:200, owned:0, maxOwn:3,
+   cd:0, effect:'invuln', value:0, duration:10000,
+   desc:'Invulnerabil 10 secunde. Treci prin inamici.',
+   stats:{efect:'invulnerabil',durată:'10s',max:'3 bucăți'}},
+  {id:'ammo',   name:'AMMO PACK',      icon:'📦', price:60,  owned:0, maxOwn:5,
+   cd:0, effect:'ammo', value:1, duration:0,
+   desc:'Reîncarcă complet arma curentă + rezervă.',
+   stats:{efect:'reload complet',bonus:'full rezervă',max:'5 bucăți'}},
+  {id:'grenade',name:'GRENADĂ',        icon:'💣', price:150, owned:0, maxOwn:4,
+   cd:0, effect:'grenade', value:80, duration:0,
+   desc:'Explozie 80 dmg în raza 90px. Aruncă înainte.',
+   stats:{damage:'80 AOE',raza:'90px',max:'4 bucăți'}},
+];
+
+// ── GAME STATE ────────────────────────────────────────────
+const G = {
+  // Player customization
+  charName:'STRIKER', shape:'circle', color:'#00d4ff', skin:'default',
+  // Combat
+  hp:100, maxHp:100, armor:0, maxArmor:0, armorAbsorb:0,
+  money:150, score:0, kills:0,
+  // Weapon
+  equippedWeapon:'pistol', ammo:12, reserveAmmo:999,
+  reloading:false, reloadStart:0,
+  // Active effects
+  effects:{speed:0, invuln:0},
+  // Wave
+  wave:1, waveEarned:0,
+  // Position
+  x:0, y:0, angle:0,
+  vx:0, vy:0,
+  // Inventory
+  equippedArmor:null,
+  utils: [],        // active util items in slots
+  // UI
+  shopTab:'weapons',
+  shopOpen:false,
+  gameStarted:false,
+};
+
+// Apply equipped weapon stats
+function getWeapon(){ return WEAPONS.find(w=>w.id===G.equippedWeapon); }
+function getArmorItem(){ return G.equippedArmor ? ARMORS.find(a=>a.id===G.equippedArmor) : null; }
+
+// ── CANVAS SETUP ──────────────────────────────────────────
+const gc = document.getElementById('gc');
+const ctx = gc.getContext('2d');
+let W, H;
+function resize(){ W=gc.width=window.innerWidth; H=gc.height=window.innerHeight; }
+resize(); window.addEventListener('resize',resize);
+
+// ── MENU BACKGROUND ANIMATION ─────────────────────────────
+const mbc = document.getElementById('menu-bg-canvas');
+const mbctx = mbc.getContext('2d');
+let mbW, mbH;
+function resizeMB(){ mbW=mbc.width=window.innerWidth; mbH=mbc.height=window.innerHeight; }
+resizeMB(); window.addEventListener('resize',resizeMB);
+
+const mbParticles = Array.from({length:40},()=>({
+  x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight,
+  vx:(Math.random()-.5)*.6, vy:(Math.random()-.5)*.6,
+  r:Math.random()*2.5+.5, alpha:Math.random()*.6+.2,
+  color:['#00d4ff','#ff2244','#00cc66','#ffcc00'][Math.floor(Math.random()*4)]
+}));
+
+function animateMenuBg(){
+  if(!document.getElementById('menu').classList.contains('active')) return;
+  mbctx.fillStyle='rgba(8,12,16,.18)'; mbctx.fillRect(0,0,mbW,mbH);
+  for(const p of mbParticles){
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0)p.x=mbW; if(p.x>mbW)p.x=0;
+    if(p.y<0)p.y=mbH; if(p.y>mbH)p.y=0;
+    mbctx.save(); mbctx.globalAlpha=p.alpha;
+    mbctx.fillStyle=p.color; mbctx.shadowColor=p.color; mbctx.shadowBlur=8;
+    mbctx.beginPath(); mbctx.arc(p.x,p.y,p.r,0,Math.PI*2); mbctx.fill();
+    mbctx.restore();
+  }
+  requestAnimationFrame(animateMenuBg);
+}
+animateMenuBg();
+
+// ── CUSTOMIZE UI ──────────────────────────────────────────
+function buildCustomize(){
+  // Shape grid
+  const sg = document.getElementById('shape-grid');
+  sg.innerHTML='';
+  SHAPES.forEach(s=>{
+    const el=document.createElement('div');
+    el.className='shape-opt'+(G.shape===s.id?' sel':'');
+    el.textContent=s.label;
+    el.onclick=()=>{ G.shape=s.id; document.querySelectorAll('.shape-opt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); drawPreview(); };
+    sg.appendChild(el);
+  });
+  // Color grid
+  const cg = document.getElementById('color-grid');
+  cg.innerHTML='';
+  COLORS.forEach(c=>{
+    const el=document.createElement('div');
+    el.className='color-opt'+(G.color===c?' sel':'');
+    el.style.background=c;
+    el.style.boxShadow=`0 0 8px ${c}66`;
+    el.onclick=()=>{ G.color=c; document.querySelectorAll('.color-opt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); drawPreview(); };
+    cg.appendChild(el);
+  });
+  // Skin grid
+  const sk = document.getElementById('skin-grid');
+  sk.innerHTML='';
+  SKINS.forEach(s=>{
+    const el=document.createElement('div');
+    el.className='skin-opt'+(G.skin===s.id?' sel':'');
+    el.textContent=s.label;
+    el.onclick=()=>{ G.skin=s.id; document.querySelectorAll('.skin-opt').forEach(e=>e.classList.remove('sel')); el.classList.add('sel'); drawPreview(); };
+    sk.appendChild(el);
+  });
+  drawPreview();
 }
 
-function updateAdminUI(){
-  const toggle = document.getElementById('admin-toggle');
-  if(session){
-    toggle.textContent = 'Ieșire';
-    toggle.classList.add('active');
-    document.getElementById('login-panel').style.display = 'none';
+function drawPreview(){
+  const pc=document.getElementById('preview-canvas');
+  const pctx=pc.getContext('2d');
+  pctx.clearRect(0,0,100,120);
+  // Background
+  pctx.fillStyle='#0f1620'; pctx.fillRect(0,0,100,120);
+  // Grid
+  pctx.strokeStyle='rgba(255,255,255,.05)'; pctx.lineWidth=1;
+  for(let i=0;i<100;i+=20){ pctx.beginPath();pctx.moveTo(i,0);pctx.lineTo(i,120);pctx.stroke(); }
+  for(let j=0;j<120;j+=20){ pctx.beginPath();pctx.moveTo(0,j);pctx.lineTo(100,j);pctx.stroke(); }
+  // Glow
+  const skin=SKINS.find(s=>s.id===G.skin);
+  if(skin.glow){
+    pctx.save(); pctx.shadowColor=G.color; pctx.shadowBlur=20;
+    drawShape(pctx,50,60,20,G.color);
+    pctx.restore();
+  }
+  // Outline
+  pctx.save();
+  pctx.strokeStyle=skin.outline; pctx.lineWidth=2;
+  drawShapeStroke(pctx,50,60,22);
+  pctx.restore();
+  // Shape
+  drawShape(pctx,50,60,18,G.color);
+  // Eye / barrel direction indicator
+  pctx.fillStyle='rgba(255,255,255,.8)';
+  pctx.beginPath(); pctx.arc(50,48,3,0,Math.PI*2); pctx.fill();
+  // Name
+  pctx.fillStyle='rgba(255,255,255,.7)'; pctx.font='8px Courier New'; pctx.textAlign='center';
+  pctx.fillText(document.getElementById('char-name').value||'STRIKER',50,108);
+}
+document.addEventListener('input',e=>{ if(e.target.id==='char-name'){G.charName=e.target.value;drawPreview();}});
+
+function drawShape(c,x,y,r,col){ SHAPES.find(s=>s.id===G.shape).draw(c,x,y,r,col); }
+function drawShapeStroke(c,x,y,r){
+  const s=SHAPES.find(sh=>sh.id===G.shape);
+  c.beginPath();
+  if(G.shape==='circle') c.arc(x,y,r,0,Math.PI*2);
+  else if(G.shape==='square') c.rect(x-r,y-r,r*2,r*2);
+  else if(G.shape==='triangle'){c.moveTo(x,y-r);c.lineTo(x+r,y+r);c.lineTo(x-r,y+r);c.closePath();}
+  else if(G.shape==='diamond'){c.moveTo(x,y-r);c.lineTo(x+r,y);c.lineTo(x,y+r);c.lineTo(x-r,y);c.closePath();}
+  else if(G.shape==='hex'){for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;c.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}c.closePath();}
+  else{c.arc(x,y,r,0,Math.PI*2);}
+  c.stroke();
+}
+
+// ── SHOP UI ───────────────────────────────────────────────
+let shopFrom='menu';
+function openShop(from='menu'){
+  shopFrom=from;
+  G.shopOpen=true;
+  document.getElementById('shop-money').textContent=G.money;
+  showScreen('shop');
+  setShopTab(G.shopTab);
+}
+function closeShop(){
+  G.shopOpen=false;
+  if(shopFrom==='game'){
+    showScreen(null);
+    document.getElementById('hud').style.display='block';
+    document.getElementById('ctrl-left').style.display='block';
+    document.getElementById('ctrl-right').style.display='block';
+  } else if(shopFrom==='between'){
+    document.getElementById('between-screen').style.display='flex';
   } else {
-    toggle.textContent = 'Admin';
-    toggle.classList.remove('active');
-    document.getElementById('new-album-panel').style.display = 'none';
-    document.getElementById('upload-panel').style.display = 'none';
+    showScreen('menu');
   }
 }
+function setShopTab(tab){
+  G.shopTab=tab;
+  document.querySelectorAll('.shop-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.shop-tab')[['weapons','armor','utility'].indexOf(tab)].classList.add('active');
+  renderShopItems(tab);
+}
 
-function toggleAdminPanel(){
-  if(session){
-    sb.auth.signOut().then(()=>{ session=null; updateAdminUI(); if(currentAlbum) openAlbum(currentAlbum); else showAlbumGrid(); });
+function renderShopItems(tab){
+  const container=document.getElementById('shop-items');
+  container.innerHTML='';
+  let items=[];
+  if(tab==='weapons') items=WEAPONS;
+  else if(tab==='armor') items=ARMORS;
+  else items=UTILITIES;
+
+  items.forEach(item=>{
+    const div=document.createElement('div');
+    const isOwned=item.owned===true||item.owned>0;
+    const isEquipped=(tab==='weapons'&&G.equippedWeapon===item.id)||(tab==='armor'&&G.equippedArmor===item.id);
+    const cantAfford=item.price>G.money&&!isOwned;
+    div.className='shop-item'+(isEquipped?' equipped':isOwned?' owned':cantAfford?' cant-afford':'');
+
+    let badgeHtml='';
+    if(isEquipped) badgeHtml='<span class="item-badge badge-equipped">ECHIPAT</span>';
+    else if(tab==='utility'&&item.owned>0) badgeHtml=`<span class="item-badge badge-owned">×${item.owned}</span>`;
+    else if(isOwned) badgeHtml='<span class="item-badge badge-owned">DEȚINUT</span>';
+
+    let statsHtml=Object.entries(item.stats||{}).map(([k,v])=>`<div class="item-stat"><span class="label">${k}</span><span class="val">${v}</span></div>`).join('');
+
+    div.innerHTML=`
+      <div class="item-icon">${item.icon}</div>
+      <div class="item-name">${item.name}</div>
+      <div class="item-desc">${item.desc}</div>
+      <div class="item-stats">${statsHtml}</div>
+      <div class="item-price ${item.price===0?'free':''}">${item.price===0?'GRATIS':'$'+item.price}</div>
+      ${badgeHtml}
+    `;
+    div.onclick=()=>buyOrEquip(tab,item);
+    container.appendChild(div);
+  });
+}
+
+function buyOrEquip(tab,item){
+  if(tab==='weapons'){
+    if(!item.owned){
+      if(G.money<item.price){addFeed('Nu ai suficienți bani!','#ff2244');return;}
+      G.money-=item.price; item.owned=true;
+    }
+    G.equippedWeapon=item.id;
+    G.ammo=item.mag; G.reserveAmmo=item.mag*4;
+    addFeed('Echipat: '+item.name,'#00d4ff');
+  } else if(tab==='armor'){
+    if(!item.owned){
+      if(G.money<item.price){addFeed('Nu ai suficienți bani!','#ff2244');return;}
+      G.money-=item.price; item.owned=true;
+    }
+    G.equippedArmor=item.id;
+    G.maxArmor=item.armor; G.armor=item.armor;
+    G.armorAbsorb=item.id==='vest_light'?.4:item.id==='vest_medium'?.55:.7;
+    addFeed('Armor echipat: '+item.name,'#2288ff');
   } else {
-    const p = document.getElementById('login-panel');
-    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    if(item.owned>=item.maxOwn){addFeed('Maxim '+item.maxOwn+' la slot!','#ff6b00');return;}
+    if(G.money<item.price){addFeed('Nu ai suficienți bani!','#ff2244');return;}
+    G.money-=item.price; item.owned++;
+    updateUtilBar();
+    addFeed('Cumpărat: '+item.name,'#00cc66');
+  }
+  document.getElementById('shop-money').textContent=G.money;
+  renderShopItems(tab);
+  updateHUD();
+}
+
+function updateUtilBar(){
+  const bar=document.getElementById('util-bar');
+  bar.innerHTML='';
+  UTILITIES.filter(u=>u.owned>0).forEach((u,i)=>{
+    const el=document.createElement('div');
+    el.className='util-slot';
+    el.dataset.uid=u.id;
+    el.innerHTML=`<div class="u-icon">${u.icon}</div><div class="u-count">×${u.owned}</div><div class="u-cd" id="cd-${u.id}"></div>`;
+    el.onclick=()=>{ G.selectedUtil=u.id; useUtil(); };
+    bar.appendChild(el);
+  });
+  document.getElementById('btn-util').textContent=UTILITIES.find(u=>u.owned>0)?.icon||'🎒';
+}
+
+// ── GAME ENGINE ───────────────────────────────────────────
+let running=false, lastT=0, totalMs=0;
+let enemies=[], bullets=[], particles=[], grenadeExplosions=[];
+let shootCooldown=0, waveEnemiesLeft=0, waveActive=false;
+let prevTrackIdx=0;
+
+// Input
+const keys={};
+let joy={active:false,id:null,sx:0,sy:0,dx:0,dy:0};
+let shooting=false;
+document.addEventListener('keydown',e=>{keys[e.code]=true;
+  if(e.code==='KeyR') manualReload();
+  if(e.code==='KeyF') useUtil();
+  if(e.code==='KeyQ') switchWeapon();
+  if(e.code==='Escape') openShop('game');
+});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+
+// Mouse
+let mouseX=W/2, mouseY=H/2;
+document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY;});
+document.addEventListener('mousedown',e=>{if(e.button===0)shooting=true;});
+document.addEventListener('mouseup',e=>{if(e.button===0)shooting=false;});
+
+// Joystick
+const jZone=document.getElementById('ctrl-left');
+const jBase=document.getElementById('joy-base');
+const jKnob=document.getElementById('joy-knob');
+const JR=40;
+jZone.addEventListener('touchstart',e=>{e.preventDefault();if(joy.active)return;const t=e.changedTouches[0];const r=jZone.getBoundingClientRect();joy={active:true,id:t.identifier,sx:t.clientX-r.left,sy:t.clientY-r.top,dx:0,dy:0};jBase.style.left=(joy.sx-53)+'px';jBase.style.bottom=(r.height-joy.sy-53)+'px';jBase.style.top='unset';},{passive:false});
+jZone.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier!==joy.id)continue;const r=jZone.getBoundingClientRect();let dx=t.clientX-r.left-joy.sx,dy=t.clientY-r.top-joy.sy;const d=Math.sqrt(dx*dx+dy*dy);if(d>JR){dx=dx/d*JR;dy=dy/d*JR;}joy.dx=dx/JR;joy.dy=dy/JR;jKnob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;}},{passive:false});
+function endJoy(e){for(const t of e.changedTouches){if(t.identifier===joy.id){joy={active:false,id:null,sx:0,sy:0,dx:0,dy:0};jKnob.style.transform='translate(-50%,-50%)';}}}
+jZone.addEventListener('touchend',endJoy,{passive:false});
+jZone.addEventListener('touchcancel',endJoy,{passive:false});
+
+const bShoot=document.getElementById('btn-shoot');
+bShoot.addEventListener('touchstart',e=>{e.preventDefault();shooting=true;},{passive:false});
+bShoot.addEventListener('touchend',()=>shooting=false);
+bShoot.addEventListener('touchcancel',()=>shooting=false);
+
+// ── SCREENS ───────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  if(id) document.getElementById(id).classList.add('active');
+}
+function goCustomize(){ buildCustomize(); showScreen('customize'); }
+function backToMenu(){ showScreen('menu'); animateMenuBg(); }
+
+// ── GAME START ────────────────────────────────────────────
+function startGame(){
+  G.charName=document.getElementById('char-name').value||'STRIKER';
+  G.hp=100; G.maxHp=100;
+  G.armor=G.maxArmor>0?G.maxArmor:0;
+  G.money=150; G.score=0; G.kills=0; G.wave=1; G.waveEarned=0;
+  G.effects={speed:0,invuln:0};
+  G.equippedWeapon='pistol';
+  const pistol=WEAPONS.find(w=>w.id==='pistol');
+  G.ammo=pistol.mag; G.reserveAmmo=pistol.mag*4;
+  G.reloading=false;
+  G.x=W/2; G.y=H/2; G.angle=0; G.vx=0; G.vy=0;
+  G.selectedUtil=null;
+  enemies=[]; bullets=[]; particles=[]; grenadeExplosions=[];
+
+  showScreen(null);
+  document.getElementById('hud').style.display='block';
+  document.getElementById('ctrl-left').style.display='block';
+  document.getElementById('ctrl-right').style.display='block';
+  document.getElementById('between-screen').style.display='none';
+
+  updateHUD(); updateUtilBar();
+  running=true; lastT=performance.now();
+  spawnWave(1);
+  requestAnimationFrame(loop);
+}
+
+// ── WAVE SYSTEM ───────────────────────────────────────────
+function spawnWave(w){
+  waveActive=true;
+  const count=3+w*2+(w>3?w:0);
+  waveEnemiesLeft=count;
+  enemies=[];
+  const types=['grunt','fast','heavy','sniper'];
+  for(let i=0;i<count;i++){
+    let type='grunt';
+    if(w>=2&&Math.random()<.2) type='fast';
+    if(w>=3&&Math.random()<.18) type='heavy';
+    if(w>=4&&Math.random()<.12) type='sniper';
+    setTimeout(()=>spawnEnemy(type,w), i*420);
+  }
+  showWaveBanner('WAVE '+w, count+' INAMICI');
+  document.getElementById('hud-wave').textContent=w;
+}
+
+function spawnEnemy(type,wave){
+  const side=Math.floor(Math.random()*4);
+  let x,y;
+  if(side===0){x=Math.random()*W;y=-30;}
+  else if(side===1){x=W+30;y=Math.random()*H;}
+  else if(side===2){x=Math.random()*W;y=H+30;}
+  else{x=-30;y=Math.random()*H;}
+
+  const configs={
+    grunt:{hp:40+wave*8,   spd:1.4+wave*.08,  dmg:8,  reward:10,  color:'#ff2244', size:14, shape:'circle'},
+    fast: {hp:25+wave*5,   spd:2.6+wave*.12,  dmg:6,  reward:15,  color:'#ff8800', size:11, shape:'triangle'},
+    heavy:{hp:120+wave*20, spd:0.85+wave*.04, dmg:18, reward:35,  color:'#aa0000', size:22, shape:'square'},
+    sniper:{hp:35+wave*6,  spd:1.1+wave*.05,  dmg:30, reward:25,  color:'#aa44ff', size:12, shape:'diamond'},
+  };
+  const cfg=configs[type];
+  enemies.push({x,y,type,hp:cfg.hp,maxHp:cfg.hp,spd:cfg.spd,dmg:cfg.dmg,reward:cfg.reward,
+    color:cfg.color,size:cfg.size,shape:cfg.shape,angle:0,
+    flashTimer:0, shootTimer:0, shootCd:type==='sniper'?180:0,
+    alive:true});
+}
+
+function checkWaveComplete(){
+  if(!waveActive) return;
+  if(enemies.filter(e=>e.alive).length===0&&waveEnemiesLeft<=0){
+    waveActive=false;
+    const reward=50+G.wave*30;
+    G.money+=reward; G.waveEarned=reward;
+    G.score+=reward;
+    G.wave++;
+    setTimeout(()=>showBetweenWave(reward), 800);
   }
 }
 
-async function login(){
-  const email = document.getElementById('login-email').value;
-  const password = document.getElementById('login-password').value;
-  const statusEl = document.getElementById('login-status');
-  statusEl.textContent = 'se conectează...';
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if(error){ statusEl.textContent = 'eroare: ' + error.message; return; }
-  session = data.session;
-  statusEl.textContent = '';
-  updateAdminUI();
-  if(currentAlbum) openAlbum(currentAlbum); else showAlbumGrid();
+function showBetweenWave(earned){
+  if(!running) return;
+  running=false;
+  const bw=document.getElementById('between-screen');
+  bw.style.display='flex';
+  document.getElementById('bw-title').textContent='WAVE COMPLETAT!';
+  document.getElementById('bw-sub').textContent=`${G.kills} inamici eliminați`;
+  document.getElementById('bw-earned').textContent=`+$${earned} câștigați`;
+  // reset buttons to normal state
+  document.getElementById('bw-shop').style.display='';
+  document.getElementById('bw-shop').onclick=()=>openShop('between');
+  const cont=document.getElementById('bw-continue');
+  cont.textContent='NEXT WAVE →';
+  cont.onclick=null;
+  cont.onclick=continueWave;
+  updateHUD();
 }
 
-/* ---------- ALBUMS ---------- */
+function continueWave(){
+  document.getElementById('between-screen').style.display='none';
+  G.hp=Math.min(G.maxHp, G.hp+20);
+  running=true; lastT=performance.now();
+  spawnWave(G.wave);
+  requestAnimationFrame(loop);
+}
 
-async function loadAlbums(){
-  const { data: albums, error } = await sb.from('albums').select('*').order('created_at', {ascending:false});
-  if(error){ console.error(error); return; }
-  albumsCache = albums || [];
+// ── PLAYER UPDATE ─────────────────────────────────────────
+function updatePlayer(dt){
+  const s=dt/1000;
+  let spd=200*(G.effects.speed>Date.now()?1.8:1);
 
-  for(const a of albumsCache){
-    const { data: photos } = await sb.from('photos').select('url').eq('album_id', a.id).order('created_at',{ascending:false}).limit(3);
-    a._previews = (photos||[]).map(p=>p.url);
-    const { count } = await sb.from('photos').select('*', {count:'exact', head:true}).eq('album_id', a.id);
-    a._count = count || 0;
+  let dx=0, dy=0;
+  if(keys['KeyW']||keys['ArrowUp'])    dy=-1;
+  if(keys['KeyS']||keys['ArrowDown'])  dy=1;
+  if(keys['KeyA']||keys['ArrowLeft'])  dx=-1;
+  if(keys['KeyD']||keys['ArrowRight']) dx=1;
+  if(joy.active){ dx=joy.dx; dy=joy.dy; }
+
+  const mag=Math.sqrt(dx*dx+dy*dy);
+  if(mag>0){dx/=mag;dy/=mag;}
+  G.x=Math.max(16,Math.min(W-16,G.x+dx*spd*s));
+  G.y=Math.max(16,Math.min(H-16,G.y+dy*spd*s));
+
+  // Aim
+  if(joy.active&&mag>0) G.angle=Math.atan2(dy,dx);
+  else G.angle=Math.atan2(mouseY-G.y,mouseX-G.x);
+
+  // Reload progress
+  if(G.reloading){
+    const w=getWeapon();
+    const prog=(Date.now()-G.reloadStart)/(w.reload*1000);
+    document.getElementById('reload-bar-fill').style.width=Math.min(100,prog*100)+'%';
+    if(prog>=1){
+      G.reloading=false;
+      if(w.infinite){
+        G.ammo=w.mag; // pistol = refill complet gratuit
+      } else {
+        const need=w.mag-G.ammo;
+        const take=Math.min(need,G.reserveAmmo);
+        G.ammo+=take; G.reserveAmmo-=take;
+      }
+      document.getElementById('reload-bar-wrap').style.display='none';
+      updateHUD();
+    }
   }
-  renderAlbumGrid();
+
+  // Shoot
+  if(shooting&&!G.reloading) tryShoot();
 }
 
-function renderAlbumGrid(){
-  const grid = document.getElementById('album-grid');
-  document.getElementById('new-album-panel').style.display = session ? 'block' : 'none';
+function tryShoot(){
+  if(shootCooldown>0) return;
+  if(G.ammo<=0){ autoReload(); return; }
+  const w=getWeapon();
+  const interval=1000/(w.rpm/60);
+  shootCooldown=interval;
 
-  if(albumsCache.length === 0){
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">niciun album încă</div>`;
-    return;
-  }
+  G.ammo--;
+  updateHUD();
 
-  grid.innerHTML = albumsCache.map(a => `
-    <div class="album-card">
-      <div class="stack" onclick="openAlbum('${a.id}')">
-        ${a._previews.length > 0
-          ? a._previews.map(u => `<div class="ph" style="background-image:url('${u}')"></div>`).join('')
-          : `<div class="empty-icon">gol</div>`}
-      </div>
-      <div class="album-title" onclick="openAlbum('${a.id}')">${escapeHtml(a.title)}</div>
-      <div class="album-count">${a._count} poz${a._count===1?'ă':'e'}</div>
-      ${session ? `<button class="album-delete" onclick="deleteAlbum('${a.id}', event)">șterge album</button>` : ''}
-    </div>
-  `).join('');
-}
+  // Muzzle flash particle
+  spawnParticle(G.x+Math.cos(G.angle)*20,G.y+Math.sin(G.angle)*20,'#ffcc00',4,2,true);
 
-async function createAlbum(){
-  const title = document.getElementById('new-album-title').value.trim();
-  if(!title) return;
-  const { error } = await sb.from('albums').insert({ title });
-  if(error){ alert('eroare: ' + error.message); return; }
-  document.getElementById('new-album-title').value = '';
-  await loadAlbums();
-}
-
-async function deleteAlbum(id, ev){
-  ev.stopPropagation();
-  if(!confirm('Ștergi albumul și toate pozele din el?')) return;
-  const { data: photos } = await sb.from('photos').select('storage_path').eq('album_id', id);
-  if(photos && photos.length){
-    await sb.storage.from('photos').remove(photos.map(p=>p.storage_path));
-  }
-  await sb.from('photos').delete().eq('album_id', id);
-  await sb.from('albums').delete().eq('id', id);
-  await loadAlbums();
-}
-
-function showAlbumGrid(){
-  currentAlbum = null;
-  document.getElementById('breadcrumb').style.display = 'none';
-  document.getElementById('album-grid').style.display = 'grid';
-  document.getElementById('photo-grid').style.display = 'none';
-  document.getElementById('upload-panel').style.display = 'none';
-  document.getElementById('new-album-panel').style.display = session ? 'block' : 'none';
-  document.getElementById('header-meta').textContent = albumsCache.length + ' album(e)';
-  renderAlbumGrid();
-}
-
-/* ---------- PHOTOS ---------- */
-
-async function openAlbum(id){
-  currentAlbum = albumsCache.find(a=>a.id===id) || (await sb.from('albums').select('*').eq('id',id).single()).data;
-  document.getElementById('breadcrumb').style.display = 'block';
-  document.getElementById('album-grid').style.display = 'none';
-  document.getElementById('photo-grid').style.display = 'grid';
-  document.getElementById('new-album-panel').style.display = 'none';
-  document.getElementById('upload-panel').style.display = session ? 'block' : 'none';
-  document.getElementById('header-meta').textContent = currentAlbum.title;
-  await loadPhotos(id);
-}
-
-async function loadPhotos(albumId){
-  const { data: photos, error } = await sb.from('photos').select('*').eq('album_id', albumId).order('created_at',{ascending:false});
-  if(error){ console.error(error); return; }
-  const grid = document.getElementById('photo-grid');
-  if(!photos || photos.length===0){
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">niciun poză aici încă</div>`;
-    return;
-  }
-  grid.innerHTML = photos.map(p => `
-    <div class="photo-cell">
-      <img src="${p.url}" loading="lazy" onclick="openLightbox('${p.url}')">
-      ${session ? `<button class="photo-delete" onclick="deletePhoto('${p.id}','${p.storage_path}', event)">✕</button>` : ''}
-    </div>
-  `).join('');
-}
-
-async function handleFiles(fileList){
-  if(!currentAlbum || !session) return;
-  const statusEl = document.getElementById('upload-status');
-  const files = Array.from(fileList);
-  for(let i=0;i<files.length;i++){
-    const file = files[i];
-    statusEl.textContent = `încarc ${i+1}/${files.length}...`;
-    const path = `${currentAlbum.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g,'_')}`;
-    const { error: upErr } = await sb.storage.from('photos').upload(path, file);
-    if(upErr){ statusEl.textContent = 'eroare upload: ' + upErr.message; continue; }
-    const { data: urlData } = sb.storage.from('photos').getPublicUrl(path);
-    await sb.from('photos').insert({
-      album_id: currentAlbum.id,
-      url: urlData.publicUrl,
-      storage_path: path
+  // Pellets
+  for(let p=0;p<w.pellets;p++){
+    const spread=(Math.random()-.5)*w.spread+(Math.random()-.5)*w.spread;
+    const a=G.angle+spread;
+    bullets.push({
+      x:G.x+Math.cos(G.angle)*22,
+      y:G.y+Math.sin(G.angle)*22,
+      vx:Math.cos(a)*520, vy:Math.sin(a)*520,
+      dmg:w.dmg, range:w.range, dist:0,
+      owner:'player', alive:true, r:w.pellets>1?3:4,
     });
   }
-  statusEl.textContent = 'gata.';
-  setTimeout(()=>statusEl.textContent='', 2000);
-  document.getElementById('file-input').value = '';
-  await loadPhotos(currentAlbum.id);
-  await loadAlbums();
 }
 
-async function deletePhoto(id, storagePath, ev){
-  ev.stopPropagation();
-  if(!confirm('Ștergi poza?')) return;
-  await sb.storage.from('photos').remove([storagePath]);
-  await sb.from('photos').delete().eq('id', id);
-  await loadPhotos(currentAlbum.id);
-  await loadAlbums();
+function autoReload(){
+  if(G.reloading) return;
+  const w=getWeapon();
+  if(G.ammo>=w.mag) return;
+  if(!w.infinite && G.reserveAmmo<=0 && G.ammo===0){
+    addFeed('Fără muniție! Schimbă arma (Q)','#ff2244');
+    return;
+  }
+  startReload();
 }
 
-/* ---------- drag & drop ---------- */
-const dropZone = document.getElementById('upload-drop');
-['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.add('drag'); }));
-['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.remove('drag'); }));
-dropZone.addEventListener('drop', e=>{ if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
-
-/* ---------- lightbox ---------- */
-function openLightbox(url){
-  document.getElementById('lightbox-img').src = url;
-  document.getElementById('lightbox').style.display = 'flex';
+function manualReload(){
+  const w=getWeapon();
+  if(G.reloading) return;
+  if(G.ammo>=w.mag){ addFeed('Magazie plină!','#4488cc'); return; }
+  if(!w.infinite && G.reserveAmmo<=0){ addFeed('Fără rezervă! Schimbă arma (Q)','#ff2244'); return; }
+  startReload();
+  addFeed('↺ Reload manual','#4488cc');
 }
-function closeLightbox(e){
-  if(e.target.id === 'lightbox' || e.target.classList.contains('close')){
-    document.getElementById('lightbox').style.display = 'none';
+
+function startReload(){
+  G.reloading=true; G.reloadStart=Date.now();
+  document.getElementById('reload-bar-wrap').style.display='block';
+  document.getElementById('reload-bar-fill').style.width='0%';
+}
+
+// ── UTILITY ───────────────────────────────────────────────
+function useUtil(){
+  const avail=UTILITIES.filter(u=>u.owned>0);
+  if(avail.length===0){addFeed('Nicio utilitate!','#ff6b00');return;}
+  // Use first available (or selected)
+  const uid=G.selectedUtil||avail[0].id;
+  const util=UTILITIES.find(u=>u.id===uid)||avail[0];
+  if(util.owned<=0){addFeed('Epuizat!','#ff2244');return;}
+
+  util.owned--;
+  updateUtilBar();
+
+  if(util.effect==='heal'){
+    G.hp=Math.min(G.maxHp,G.hp+util.value);
+    addFeed('💊 +'+util.value+' HP restaurat','#00cc66');
+    spawnParticle(G.x,G.y,'#00cc66',12,4);
+  } else if(util.effect==='speed'){
+    G.effects.speed=Date.now()+util.duration;
+    addFeed('⚡ SPEED BOOST activ ('+util.duration/1000+'s)','#ffcc00');
+    addEffect('⚡ SPEED',util.duration,'#ffcc00');
+  } else if(util.effect==='invuln'){
+    G.effects.invuln=Date.now()+util.duration;
+    addFeed('🔮 CÂMP DE FORȚĂ activ ('+util.duration/1000+'s)','#aa44ff');
+    addEffect('🔮 INVULN',util.duration,'#aa44ff');
+  } else if(util.effect==='ammo'){
+    const w=getWeapon();
+    G.ammo=w.mag; G.reserveAmmo=w.mag*4;
+    addFeed('📦 Muniție reîncărcată complet!','#00d4ff');
+    updateHUD();
+  } else if(util.effect==='grenade'){
+    // spawn grenade in direction player faces
+    const gx=G.x+Math.cos(G.angle)*90;
+    const gy=G.y+Math.sin(G.angle)*90;
+    grenadeExplosions.push({x:gx,y:gy,r:0,maxR:90,dmg:80,timer:8});
+    spawnParticle(gx,gy,'#ff8800',20,6);
+    addFeed('💣 GRENADĂ!','#ff8800');
+  }
+  updateHUD();
+}
+
+function addEffect(label,dur,col){
+  const ef=document.getElementById('active-effects');
+  const el=document.createElement('div');
+  el.className='effect-badge';
+  el.style.background=col+'22'; el.style.border='1px solid '+col+'55';
+  el.innerHTML=`<span style="color:${col}">${label}</span><span class="effect-timer" id="eft-${label.replace(/\s/g,'')}"></span>`;
+  ef.appendChild(el);
+  const end=Date.now()+dur;
+  const iv=setInterval(()=>{
+    const rem=Math.max(0,Math.ceil((end-Date.now())/1000));
+    const span=document.getElementById('eft-'+label.replace(/\s/g,''));
+    if(span) span.textContent=rem+'s';
+    if(rem<=0){clearInterval(iv);el.remove();}
+  },200);
+}
+
+// ── ENEMY UPDATE ──────────────────────────────────────────
+function updateEnemies(dt){
+  const s=dt/1000;
+  for(const e of enemies){
+    if(!e.alive) continue;
+    const dx=G.x-e.x, dy=G.y-e.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    e.angle=Math.atan2(dy,dx);
+
+    // Move toward player
+    if(dist>e.size+16){
+      e.x+=dx/dist*e.spd*(60*s);
+      e.y+=dy/dist*e.spd*(60*s);
+    }
+
+    if(e.flashTimer>0) e.flashTimer--;
+
+    // Attack player (melee)
+    if(dist<e.size+18){
+      if(G.effects.invuln<Date.now()){ // not invulnerable
+        const rawDmg=e.dmg*s*2;
+        applyDamage(rawDmg);
+      }
+    }
+
+    // Sniper shoots
+    if(e.type==='sniper'){
+      e.shootTimer++;
+      if(e.shootTimer>=e.shootCd){
+        e.shootTimer=0;
+        if(dist<350){
+          const a=Math.atan2(G.y-e.y,G.x-e.x)+(Math.random()-.5)*.08;
+          bullets.push({x:e.x,y:e.y,vx:Math.cos(a)*440,vy:Math.sin(a)*440,dmg:e.dmg,range:380,dist:0,owner:'enemy',alive:true,r:4,color:'#aa44ff'});
+        }
+      }
+    }
   }
 }
 
-function escapeHtml(s){
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+function applyDamage(dmg){
+  let remaining=dmg;
+  if(G.armor>0){
+    const absorbed=dmg*G.armorAbsorb;
+    G.armor=Math.max(0,G.armor-absorbed);
+    remaining=dmg*(1-G.armorAbsorb);
+  }
+  G.hp=Math.max(0,G.hp-remaining);
+  document.getElementById('dmg-flash').style.background='rgba(255,20,60,.3)';
+  setTimeout(()=>document.getElementById('dmg-flash').style.background='rgba(255,20,60,0)',120);
+  if(G.hp<=0) gameOver();
+  updateHUD();
 }
 
-init();
+// ── BULLET UPDATE ─────────────────────────────────────────
+function updateBullets(dt){
+  const s=dt/1000;
+  for(const b of bullets){
+    if(!b.alive) continue;
+    b.x+=b.vx*s; b.y+=b.vy*s;
+    b.dist+=Math.sqrt(b.vx*b.vx+b.vy*b.vy)*s;
+    if(b.dist>b.range||b.x<-20||b.x>W+20||b.y<-20||b.y>H+20){b.alive=false;continue;}
+
+    if(b.owner==='player'){
+      for(const e of enemies){
+        if(!e.alive) continue;
+        const dx=b.x-e.x,dy=b.y-e.y;
+        if(dx*dx+dy*dy<(e.size+b.r)**2){
+          b.alive=false;
+          e.hp-=b.dmg; e.flashTimer=6;
+          spawnParticle(b.x,b.y,'#ffcc00',5,3);
+          showHitMarker();
+          if(e.hp<=0){ killEnemy(e); }
+          break;
+        }
+      }
+    } else {
+      // enemy bullet hits player
+      const dx=b.x-G.x,dy=b.y-G.y;
+      if(dx*dx+dy*dy<(16+b.r)**2){
+        b.alive=false;
+        if(G.effects.invuln<Date.now()) applyDamage(b.dmg*1.2);
+      }
+    }
+  }
+  bullets=bullets.filter(b=>b.alive);
+
+  // Grenade explosions
+  for(const g of grenadeExplosions){
+    g.timer--;
+    g.r=g.maxR*(1-g.timer/8);
+    if(g.timer<=0) continue;
+    for(const e of enemies){
+      if(!e.alive) continue;
+      const dx=e.x-g.x,dy=e.y-g.y;
+      if(dx*dx+dy*dy<(g.r+e.size)**2){
+        e.hp-=g.dmg*(1/8);
+        e.flashTimer=4;
+        if(e.hp<=0) killEnemy(e);
+      }
+    }
+  }
+  grenadeExplosions=grenadeExplosions.filter(g=>g.timer>0);
+}
+
+function killEnemy(e){
+  e.alive=false;
+  G.money+=e.reward; G.score+=e.reward; G.kills++;
+  waveEnemiesLeft--;
+  spawnParticle(e.x,e.y,e.color,14,5);
+  addFeed('✓ KILL +$'+e.reward,'#00cc66');
+  updateHUD();
+  checkWaveComplete();
+}
+
+// ── PARTICLES ─────────────────────────────────────────────
+function spawnParticle(x,y,color,count=8,speed=3,small=false){
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2;
+    const spd=Math.random()*speed+1;
+    particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:1,decay:Math.random()*.06+.03,size:small?Math.random()*2+1:Math.random()*4+2,color});
+  }
+}
+
+// ── HUD MARKER ────────────────────────────────────────────
+function showHitMarker(){
+  const el=document.getElementById('hit-marker');
+  el.style.opacity='1';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.opacity='0',120);
+}
+
+function addFeed(msg,color='#fff'){
+  const feed=document.getElementById('feed');
+  const el=document.createElement('div');
+  el.className='feed-item'; el.textContent=msg; el.style.color=color;
+  feed.appendChild(el);
+  if(feed.children.length>5) feed.removeChild(feed.firstChild);
+  clearTimeout(el._t); el._t=setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),400);},2200);
+}
+
+function showWaveBanner(title,sub){
+  const b=document.getElementById('wave-banner');
+  document.getElementById('wave-banner-txt').textContent=title;
+  document.getElementById('wave-banner-sub').textContent=sub;
+  b.style.opacity='1';
+  clearTimeout(b._t); b._t=setTimeout(()=>b.style.opacity='0',2000);
+}
+
+function switchWeapon(){
+  const owned=WEAPONS.filter(w=>w.owned===true);
+  if(owned.length<=1){ addFeed('Ai o singură armă! Cumpără din shop.','#ff6b00'); return; }
+  const curIdx=owned.findIndex(w=>w.id===G.equippedWeapon);
+  const next=owned[(curIdx+1)%owned.length];
+  G.equippedWeapon=next.id;
+  G.reloading=false;
+  document.getElementById('reload-bar-wrap').style.display='none';
+  // restore ammo for switched weapon (track per-weapon)
+  if(!G.weaponAmmo) G.weaponAmmo={};
+  G.weaponAmmo[owned[curIdx].id]=G.ammo; // save current
+  G.ammo = G.weaponAmmo[next.id]!==undefined ? G.weaponAmmo[next.id] : next.mag;
+  if(!G.weaponReserve) G.weaponReserve={};
+  G.weaponReserve[owned[curIdx].id]=G.reserveAmmo;
+  G.reserveAmmo = G.weaponReserve[next.id]!==undefined ? G.weaponReserve[next.id] : next.mag*4;
+  addFeed('⇄ '+next.name+' echipat','#00d4ff');
+  updateHUD();
+}
+
+function updateHUD(){
+  document.getElementById('hud-money').textContent=G.money;
+  document.getElementById('hud-score').textContent=G.score;
+  document.getElementById('hp-fill').style.width=(G.hp/G.maxHp*100)+'%';
+  document.getElementById('hp-txt').textContent=Math.ceil(G.hp);
+  document.getElementById('armor-fill').style.width=(G.maxArmor>0?G.armor/G.maxArmor*100:0)+'%';
+  document.getElementById('armor-txt').textContent=Math.ceil(G.armor);
+  const w=getWeapon();
+  document.getElementById('weapon-name').textContent=w.name+(w.infinite?' ∞':'');
+  document.getElementById('ammo-display').textContent=G.ammo+' / '+w.mag;
+  document.getElementById('ammo-reserve').textContent=w.infinite?'∞ rezervă':(G.reserveAmmo+' rezervă');
+  // Owned weapons strip
+  const strip=document.getElementById('owned-weapons');
+  if(strip){
+    strip.innerHTML='';
+    WEAPONS.filter(ww=>ww.owned===true).forEach(ww=>{
+      const el=document.createElement('div');
+      el.style.cssText=`font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid ${ww.id===G.equippedWeapon?'#00d4ff':'rgba(255,255,255,.15)'};color:${ww.id===G.equippedWeapon?'#00d4ff':'#666'};background:${ww.id===G.equippedWeapon?'rgba(0,212,255,.1)':'transparent'};cursor:pointer;`;
+      el.textContent=ww.icon+' '+ww.name;
+      el.onclick=()=>{ G.equippedWeapon=ww.id; G.reloading=false; document.getElementById('reload-bar-wrap').style.display='none'; G.ammo=(G.weaponAmmo&&G.weaponAmmo[ww.id]!==undefined)?G.weaponAmmo[ww.id]:ww.mag; G.reserveAmmo=(G.weaponReserve&&G.weaponReserve[ww.id]!==undefined)?G.weaponReserve[ww.id]:ww.mag*4; addFeed('⇄ '+ww.name,'#00d4ff'); updateHUD(); };
+      strip.appendChild(el);
+    });
+  }
+}
+
+// ── GAME OVER ─────────────────────────────────────────────
+function gameOver(){
+  running=false;
+  const bw=document.getElementById('between-screen');
+  bw.style.display='flex';
+  document.getElementById('bw-title').textContent='GAME OVER';
+  document.getElementById('bw-sub').textContent=`Scor: ${G.score}  ·  Kills: ${G.kills}  ·  Wave: ${G.wave}`;
+  document.getElementById('bw-earned').textContent='';
+  document.getElementById('bw-shop').style.display='none';
+  const cont=document.getElementById('bw-continue');
+  cont.textContent='↺ RESTART';
+  cont.onclick=null;
+  cont.onclick=()=>{ document.getElementById('bw-shop').style.display=''; startGame(); };
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function render(){
+  // Background
+  ctx.fillStyle='#080c10'; ctx.fillRect(0,0,W,H);
+  // Grid — fixed, nu se mișcă cu playerul
+  ctx.strokeStyle='rgba(30,48,80,.4)'; ctx.lineWidth=1;
+  const gs=60;
+  for(let x=0;x<W;x+=gs){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+  for(let y=0;y<H;y+=gs){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+
+  // Grenade explosions
+  for(const g of grenadeExplosions){
+    ctx.save();
+    const gr=ctx.createRadialGradient(g.x,g.y,0,g.x,g.y,g.r);
+    gr.addColorStop(0,'rgba(255,180,50,.45)'); gr.addColorStop(1,'rgba(255,80,0,0)');
+    ctx.fillStyle=gr; ctx.beginPath(); ctx.arc(g.x,g.y,g.r,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Particles
+  for(const p of particles){
+    ctx.save(); ctx.globalAlpha=p.life;
+    ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=6;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    p.x+=p.vx; p.y+=p.vy; p.vx*=.90; p.vy*=.90; p.life-=p.decay;
+  }
+  particles=particles.filter(p=>p.life>0);
+
+  // Enemies
+  for(const e of enemies){
+    if(!e.alive) continue;
+    ctx.save();
+    const isFlash=e.flashTimer>0;
+    ctx.shadowColor=e.color; ctx.shadowBlur=isFlash?20:10;
+    // Shape
+    const shp=SHAPES.find(s=>s.id===e.shape)||SHAPES[0];
+    shp.draw(ctx,e.x,e.y,e.size,isFlash?'#ffffff':e.color);
+    // HP bar (if damaged)
+    if(e.hp<e.maxHp){
+      ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(e.x-e.size,e.y+e.size+4,e.size*2,4);
+      ctx.fillStyle=e.hp/e.maxHp>.5?'#00cc66':'#ff2244';
+      ctx.fillRect(e.x-e.size,e.y+e.size+4,e.size*2*(e.hp/e.maxHp),4);
+    }
+    ctx.restore();
+  }
+
+  // Bullets
+  for(const b of bullets){
+    ctx.save(); ctx.shadowColor=b.owner==='player'?'#ffcc00':'#aa44ff'; ctx.shadowBlur=8;
+    ctx.fillStyle=b.color||(b.owner==='player'?'#ffee44':'#dd44ff');
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Player
+  ctx.save();
+  const invuln=G.effects.invuln>Date.now();
+  const spd=G.effects.speed>Date.now();
+  ctx.shadowColor=invuln?'#aa44ff':spd?'#ffcc00':G.color; ctx.shadowBlur=invuln?28:spd?18:14;
+  if(invuln){ ctx.strokeStyle='rgba(170,68,255,.6)'; ctx.lineWidth=3; }
+
+  // Skin outline
+  const skin=SKINS.find(s=>s.id===G.skin);
+  ctx.strokeStyle=skin.outline; ctx.lineWidth=2.5;
+  drawPlayerShape(ctx,G.x,G.y,16);
+  ctx.stroke();
+  ctx.globalAlpha=invuln?.65:1;
+  drawShape(ctx,G.x,G.y,14,G.color);
+  ctx.restore();
+
+  // Gun barrel
+  ctx.save(); ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=3; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(G.x+Math.cos(G.angle)*12,G.y+Math.sin(G.angle)*12);
+  ctx.lineTo(G.x+Math.cos(G.angle)*28,G.y+Math.sin(G.angle)*28);
+  ctx.stroke(); ctx.restore();
+
+  // Crosshair (desktop)
+  if(!('ontouchstart' in window)){
+    ctx.save(); ctx.strokeStyle='rgba(255,255,255,.6)'; ctx.lineWidth=1;
+    const cx=mouseX,cy=mouseY;
+    ctx.beginPath();ctx.moveTo(cx-8,cy);ctx.lineTo(cx+8,cy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,cy-8);ctx.lineTo(cx,cy+8);ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+
+  // Shoot cooldown timer in HUD
+  if(shootCooldown>0) shootCooldown=Math.max(0,shootCooldown-16);
+}
+
+function drawPlayerShape(c,x,y,r){
+  const s=SHAPES.find(sh=>sh.id===G.shape);
+  c.beginPath();
+  if(G.shape==='circle') c.arc(x,y,r,0,Math.PI*2);
+  else if(G.shape==='square') c.rect(x-r,y-r,r*2,r*2);
+  else if(G.shape==='triangle'){c.moveTo(x,y-r);c.lineTo(x+r,y+r);c.lineTo(x-r,y+r);c.closePath();}
+  else if(G.shape==='diamond'){c.moveTo(x,y-r);c.lineTo(x+r,y);c.lineTo(x,y+r);c.lineTo(x-r,y);c.closePath();}
+  else if(G.shape==='hex'){for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;c.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}c.closePath();}
+  else c.arc(x,y,r,0,Math.PI*2);
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────
+function loop(now){
+  if(!running) return;
+  const dt=Math.min(50,now-lastT); lastT=now;
+  totalMs+=dt;
+  updatePlayer(dt);
+  updateEnemies(dt);
+  updateBullets(dt);
+  render();
+  requestAnimationFrame(loop);
+}
 </script>
 </body>
 </html>
