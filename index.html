@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galerie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg: #1B1F1A;
+    --surface: #242920;
+    --surface-hover: #2C3226;
+    --ink: #EDEAE0;
+    --ink-muted: #9C9C8E;
+    --brass: #B08D57;
+    --brass-dim: #8A6E44;
+    --danger: #8B3A3A;
+    --radius: 3px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+  }
+  ::selection{ background:var(--brass); color:#14120F; }
+
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    padding:2.5rem 2rem 1.5rem;
+    border-bottom:1px solid #33392C;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  header h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:1.8rem;
+    letter-spacing:0.01em;
+    margin:0;
+    cursor:pointer;
+  }
+  header .meta{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    color:var(--ink-muted);
+    letter-spacing:0.03em;
+  }
+  #admin-toggle{
+    background:none;
+    border:1px solid #3D4433;
+    color:var(--ink-muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.7rem;
+    padding:0.4rem 0.8rem;
+    border-radius:var(--radius);
+    cursor:pointer;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+  #admin-toggle:hover{ border-color:var(--brass); color:var(--brass); }
+  #admin-toggle.active{ border-color:var(--brass); color:var(--brass); background:rgba(176,141,87,0.08); }
+
+  main{ max-width:1200px; margin:0 auto; padding:2rem; }
+
+  /* breadcrumb / back */
+  #breadcrumb{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.75rem;
+    color:var(--ink-muted);
+    margin-bottom:1.5rem;
+    display:none;
+  }
+  #breadcrumb button{
+    background:none; border:none; color:var(--brass);
+    cursor:pointer; font-family:inherit; font-size:inherit; padding:0;
+  }
+
+  /* album grid */
+  #album-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+    gap:2.2rem 1.8rem;
+  }
+  .album-card{ cursor:pointer; }
+  .stack{
+    position:relative;
+    aspect-ratio:1/1;
+    margin-bottom:0.9rem;
+  }
+  .stack .ph{
+    position:absolute; inset:0;
+    background:var(--surface);
+    background-size:cover;
+    background-position:center;
+    border-radius:var(--radius);
+    border:1px solid #33392C;
+    transition:transform 0.25s ease;
+  }
+  .stack .ph:nth-child(1){ transform:rotate(-4deg) translate(-4px,2px); z-index:1;}
+  .stack .ph:nth-child(2){ transform:rotate(3deg) translate(3px,-2px); z-index:2;}
+  .stack .ph:nth-child(3){ transform:rotate(0deg); z-index:3;}
+  .album-card:hover .stack .ph:nth-child(1){ transform:rotate(-8deg) translate(-9px,4px); }
+  .album-card:hover .stack .ph:nth-child(2){ transform:rotate(7deg) translate(7px,-4px); }
+  .album-card:hover .stack .ph:nth-child(3){ transform:translateY(-4px); }
+  .stack .empty-icon{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--ink-muted); font-size:0.7rem; font-family:'IBM Plex Mono', monospace;
+    background:var(--surface); border-radius:var(--radius); border:1px dashed #3D4433;
+  }
+  .album-title{
+    font-family:'Fraunces', serif;
+    font-size:1.15rem;
+    font-weight:500;
+  }
+  .album-count{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.7rem;
+    color:var(--ink-muted);
+    margin-top:0.2rem;
+  }
+  .album-delete{
+    background:none; border:none; color:var(--danger);
+    font-family:'IBM Plex Mono', monospace; font-size:0.65rem;
+    cursor:pointer; margin-top:0.3rem; padding:0; opacity:0.7;
+  }
+  .album-delete:hover{ opacity:1; text-decoration:underline; }
+
+  /* photo grid inside album */
+  #photo-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+    gap:1rem;
+  }
+  .photo-cell{
+    position:relative;
+    aspect-ratio:1/1;
+    border-radius:var(--radius);
+    overflow:hidden;
+    border:1px solid #33392C;
+    cursor:pointer;
+    background:var(--surface);
+  }
+  .photo-cell img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-delete{
+    position:absolute; top:6px; right:6px;
+    background:rgba(20,18,15,0.75);
+    color:var(--danger); border:none; border-radius:2px;
+    font-family:'IBM Plex Mono', monospace; font-size:0.65rem;
+    padding:2px 6px; cursor:pointer; opacity:0; transition:opacity 0.15s;
+  }
+  .photo-cell:hover .photo-delete{ opacity:1; }
+
+  /* lightbox */
+  #lightbox{
+    position:fixed; inset:0; background:rgba(14,13,10,0.94);
+    display:none; align-items:center; justify-content:center;
+    z-index:100; padding:2rem;
+  }
+  #lightbox img{ max-width:100%; max-height:88vh; border-radius:2px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+  #lightbox .close{
+    position:absolute; top:1.5rem; right:2rem;
+    color:var(--ink-muted); font-family:'IBM Plex Mono', monospace;
+    font-size:0.8rem; cursor:pointer; background:none; border:none;
+  }
+  #lightbox .close:hover{ color:var(--brass); }
+
+  /* forms / admin panels */
+  .panel{
+    background:var(--surface);
+    border:1px solid #33392C;
+    border-radius:var(--radius);
+    padding:1.5rem;
+    margin-bottom:2rem;
+  }
+  .panel h3{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.75rem;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--ink-muted);
+    margin:0 0 1rem;
+  }
+  .row{ display:flex; gap:0.7rem; flex-wrap:wrap; align-items:center; }
+  input[type=text], input[type=email], input[type=password]{
+    background:var(--bg);
+    border:1px solid #3D4433;
+    color:var(--ink);
+    padding:0.6rem 0.8rem;
+    border-radius:var(--radius);
+    font-family:'Inter', sans-serif;
+    font-size:0.85rem;
+    flex:1;
+    min-width:160px;
+  }
+  input:focus{ outline:1px solid var(--brass); border-color:var(--brass); }
+  button.primary{
+    background:var(--brass);
+    color:#14120F;
+    border:none;
+    padding:0.6rem 1.1rem;
+    border-radius:var(--radius);
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:0.82rem;
+    cursor:pointer;
+  }
+  button.primary:hover{ background:#C29B63; }
+  button.primary:disabled{ opacity:0.5; cursor:not-allowed; }
+  button.ghost{
+    background:none; border:1px solid #3D4433; color:var(--ink-muted);
+    padding:0.6rem 1rem; border-radius:var(--radius); cursor:pointer;
+    font-family:'Inter', sans-serif; font-size:0.82rem;
+  }
+  button.ghost:hover{ border-color:var(--brass); color:var(--brass); }
+
+  #upload-drop{
+    border:1px dashed #3D4433;
+    border-radius:var(--radius);
+    padding:2rem;
+    text-align:center;
+    color:var(--ink-muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    cursor:pointer;
+    margin-top:1rem;
+  }
+  #upload-drop.drag{ border-color:var(--brass); color:var(--brass); }
+
+  .status{ font-family:'IBM Plex Mono', monospace; font-size:0.72rem; color:var(--ink-muted); margin-top:0.6rem; }
+  .empty-state{
+    text-align:center; padding:4rem 1rem; color:var(--ink-muted);
+    font-family:'IBM Plex Mono', monospace; font-size:0.8rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 onclick="showAlbumGrid()">Galerie</h1>
+  <div class="row" style="gap:0.8rem;">
+    <span class="meta" id="header-meta"></span>
+    <button id="admin-toggle" onclick="toggleAdminPanel()">Admin</button>
+  </div>
+</header>
+
+<main>
+  <div id="breadcrumb"><button onclick="showAlbumGrid()">&larr; toate albumele</button></div>
+
+  <!-- LOGIN PANEL -->
+  <div class="panel" id="login-panel" style="display:none;">
+    <h3>Autentificare admin</h3>
+    <div class="row">
+      <input type="email" id="login-email" placeholder="email">
+      <input type="password" id="login-password" placeholder="parolă">
+      <button class="primary" onclick="login()">Intră</button>
+    </div>
+    <div class="status" id="login-status"></div>
+  </div>
+
+  <!-- NEW ALBUM PANEL (admin only, album grid view) -->
+  <div class="panel" id="new-album-panel" style="display:none;">
+    <h3>Album nou</h3>
+    <div class="row">
+      <input type="text" id="new-album-title" placeholder="titlu album">
+      <button class="primary" onclick="createAlbum()">Creează</button>
+    </div>
+  </div>
+
+  <!-- UPLOAD PANEL (admin only, inside album view) -->
+  <div class="panel" id="upload-panel" style="display:none;">
+    <h3>Adaugă poze</h3>
+    <input type="file" id="file-input" accept="image/*" multiple style="display:none;" onchange="handleFiles(this.files)">
+    <div id="upload-drop" onclick="document.getElementById('file-input').click()">
+      click aici sau trage pozele în zona asta
+    </div>
+    <div class="status" id="upload-status"></div>
+  </div>
+
+  <div id="album-grid"></div>
+  <div id="photo-grid" style="display:none;"></div>
+</main>
+
+<div id="lightbox" onclick="closeLightbox(event)">
+  <button class="close" onclick="closeLightbox(event)">✕ închide</button>
+  <img id="lightbox-img" src="">
+</div>
+
+<script>
+/* ====== CONFIGURARE — completează cu datele proiectului tău Supabase ====== */
+const SUPABASE_URL = 'https://evufjupuvwpzzjvakqgp.supabase.co';
+const SUPABASE_ANON_KEY = 'cheia-ta-de-la-Settings-API';
+/* =========================================================================== */
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let session = null;
+let currentAlbum = null;
+let albumsCache = [];
+
+async function init(){
+  const { data } = await sb.auth.getSession();
+  session = data.session;
+  updateAdminUI();
+  await loadAlbums();
+}
+
+function updateAdminUI(){
+  const toggle = document.getElementById('admin-toggle');
+  if(session){
+    toggle.textContent = 'Ieșire';
+    toggle.classList.add('active');
+    document.getElementById('login-panel').style.display = 'none';
+  } else {
+    toggle.textContent = 'Admin';
+    toggle.classList.remove('active');
+    document.getElementById('new-album-panel').style.display = 'none';
+    document.getElementById('upload-panel').style.display = 'none';
+  }
+}
+
+function toggleAdminPanel(){
+  if(session){
+    sb.auth.signOut().then(()=>{ session=null; updateAdminUI(); if(currentAlbum) openAlbum(currentAlbum); else showAlbumGrid(); });
+  } else {
+    const p = document.getElementById('login-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+async function login(){
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const statusEl = document.getElementById('login-status');
+  statusEl.textContent = 'se conectează...';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ statusEl.textContent = 'eroare: ' + error.message; return; }
+  session = data.session;
+  statusEl.textContent = '';
+  updateAdminUI();
+  if(currentAlbum) openAlbum(currentAlbum); else showAlbumGrid();
+}
+
+/* ---------- ALBUMS ---------- */
+
+async function loadAlbums(){
+  const { data: albums, error } = await sb.from('albums').select('*').order('created_at', {ascending:false});
+  if(error){ console.error(error); return; }
+  albumsCache = albums || [];
+
+  for(const a of albumsCache){
+    const { data: photos } = await sb.from('photos').select('url').eq('album_id', a.id).order('created_at',{ascending:false}).limit(3);
+    a._previews = (photos||[]).map(p=>p.url);
+    const { count } = await sb.from('photos').select('*', {count:'exact', head:true}).eq('album_id', a.id);
+    a._count = count || 0;
+  }
+  renderAlbumGrid();
+}
+
+function renderAlbumGrid(){
+  const grid = document.getElementById('album-grid');
+  document.getElementById('new-album-panel').style.display = session ? 'block' : 'none';
+
+  if(albumsCache.length === 0){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">niciun album încă</div>`;
+    return;
+  }
+
+  grid.innerHTML = albumsCache.map(a => `
+    <div class="album-card">
+      <div class="stack" onclick="openAlbum('${a.id}')">
+        ${a._previews.length > 0
+          ? a._previews.map(u => `<div class="ph" style="background-image:url('${u}')"></div>`).join('')
+          : `<div class="empty-icon">gol</div>`}
+      </div>
+      <div class="album-title" onclick="openAlbum('${a.id}')">${escapeHtml(a.title)}</div>
+      <div class="album-count">${a._count} poz${a._count===1?'ă':'e'}</div>
+      ${session ? `<button class="album-delete" onclick="deleteAlbum('${a.id}', event)">șterge album</button>` : ''}
+    </div>
+  `).join('');
+}
+
+async function createAlbum(){
+  const title = document.getElementById('new-album-title').value.trim();
+  if(!title) return;
+  const { error } = await sb.from('albums').insert({ title });
+  if(error){ alert('eroare: ' + error.message); return; }
+  document.getElementById('new-album-title').value = '';
+  await loadAlbums();
+}
+
+async function deleteAlbum(id, ev){
+  ev.stopPropagation();
+  if(!confirm('Ștergi albumul și toate pozele din el?')) return;
+  const { data: photos } = await sb.from('photos').select('storage_path').eq('album_id', id);
+  if(photos && photos.length){
+    await sb.storage.from('photos').remove(photos.map(p=>p.storage_path));
+  }
+  await sb.from('photos').delete().eq('album_id', id);
+  await sb.from('albums').delete().eq('id', id);
+  await loadAlbums();
+}
+
+function showAlbumGrid(){
+  currentAlbum = null;
+  document.getElementById('breadcrumb').style.display = 'none';
+  document.getElementById('album-grid').style.display = 'grid';
+  document.getElementById('photo-grid').style.display = 'none';
+  document.getElementById('upload-panel').style.display = 'none';
+  document.getElementById('new-album-panel').style.display = session ? 'block' : 'none';
+  document.getElementById('header-meta').textContent = albumsCache.length + ' album(e)';
+  renderAlbumGrid();
+}
+
+/* ---------- PHOTOS ---------- */
+
+async function openAlbum(id){
+  currentAlbum = albumsCache.find(a=>a.id===id) || (await sb.from('albums').select('*').eq('id',id).single()).data;
+  document.getElementById('breadcrumb').style.display = 'block';
+  document.getElementById('album-grid').style.display = 'none';
+  document.getElementById('photo-grid').style.display = 'grid';
+  document.getElementById('new-album-panel').style.display = 'none';
+  document.getElementById('upload-panel').style.display = session ? 'block' : 'none';
+  document.getElementById('header-meta').textContent = currentAlbum.title;
+  await loadPhotos(id);
+}
+
+async function loadPhotos(albumId){
+  const { data: photos, error } = await sb.from('photos').select('*').eq('album_id', albumId).order('created_at',{ascending:false});
+  if(error){ console.error(error); return; }
+  const grid = document.getElementById('photo-grid');
+  if(!photos || photos.length===0){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">niciun poză aici încă</div>`;
+    return;
+  }
+  grid.innerHTML = photos.map(p => `
+    <div class="photo-cell">
+      <img src="${p.url}" loading="lazy" onclick="openLightbox('${p.url}')">
+      ${session ? `<button class="photo-delete" onclick="deletePhoto('${p.id}','${p.storage_path}', event)">✕</button>` : ''}
+    </div>
+  `).join('');
+}
+
+async function handleFiles(fileList){
+  if(!currentAlbum || !session) return;
+  const statusEl = document.getElementById('upload-status');
+  const files = Array.from(fileList);
+  for(let i=0;i<files.length;i++){
+    const file = files[i];
+    statusEl.textContent = `încarc ${i+1}/${files.length}...`;
+    const path = `${currentAlbum.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g,'_')}`;
+    const { error: upErr } = await sb.storage.from('photos').upload(path, file);
+    if(upErr){ statusEl.textContent = 'eroare upload: ' + upErr.message; continue; }
+    const { data: urlData } = sb.storage.from('photos').getPublicUrl(path);
+    await sb.from('photos').insert({
+      album_id: currentAlbum.id,
+      url: urlData.publicUrl,
+      storage_path: path
+    });
+  }
+  statusEl.textContent = 'gata.';
+  setTimeout(()=>statusEl.textContent='', 2000);
+  document.getElementById('file-input').value = '';
+  await loadPhotos(currentAlbum.id);
+  await loadAlbums();
+}
+
+async function deletePhoto(id, storagePath, ev){
+  ev.stopPropagation();
+  if(!confirm('Ștergi poza?')) return;
+  await sb.storage.from('photos').remove([storagePath]);
+  await sb.from('photos').delete().eq('id', id);
+  await loadPhotos(currentAlbum.id);
+  await loadAlbums();
+}
+
+/* ---------- drag & drop ---------- */
+const dropZone = document.getElementById('upload-drop');
+['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.remove('drag'); }));
+dropZone.addEventListener('drop', e=>{ if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
+
+/* ---------- lightbox ---------- */
+function openLightbox(url){
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').style.display = 'flex';
+}
+function closeLightbox(e){
+  if(e.target.id === 'lightbox' || e.target.classList.contains('close')){
+    document.getElementById('lightbox').style.display = 'none';
+  }
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+init();
+</script>
+</body>
+</html>
