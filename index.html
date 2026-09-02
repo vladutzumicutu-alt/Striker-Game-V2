@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>STRIKER</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -64,8 +64,8 @@ canvas{position:fixed;top:0;left:0;display:block;}
 .btn-confirm{padding:10px 28px;background:var(--green);color:#000;font-weight:bold;font-size:13px;letter-spacing:2px;font-family:inherit;border:none;border-radius:4px;cursor:pointer;}
 
 /* ── SHOP SCREEN ── */
-#shop{padding:0;background:var(--bg);}
-.shop-layout{width:100%;max-width:700px;display:flex;flex-direction:column;height:100vh;}
+#shop{padding:0;background:var(--bg);padding-bottom:env(safe-area-inset-bottom,0px);}
+.shop-layout{width:100%;max-width:700px;display:flex;flex-direction:column;height:100%;max-height:100vh;}
 .shop-header{padding:14px 18px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .shop-header h2{font-size:14px;letter-spacing:4px;color:var(--gold);}
 .money-display{font-size:16px;color:var(--gold);letter-spacing:1px;}
@@ -91,7 +91,7 @@ canvas{position:fixed;top:0;left:0;display:block;}
 .item-badge{font-size:8px;padding:2px 6px;border-radius:3px;align-self:flex-start;margin-top:2px;}
 .badge-owned{background:rgba(0,204,102,.15);color:var(--green);}
 .badge-equipped{background:rgba(0,212,255,.15);color:var(--accent);}
-.shop-footer{border-top:1px solid var(--border);padding:12px 18px;display:flex;justify-content:space-between;align-items:center;}
+.shop-footer{border-top:1px solid var(--border);padding:12px 18px;padding-bottom:calc(12px + env(safe-area-inset-bottom, 20px));display:flex;justify-content:space-between;align-items:center;background:var(--bg);}
 .shop-footer .hint{font-size:9px;color:var(--muted);}
 
 /* ── HUD ── */
@@ -653,24 +653,45 @@ function drawShapeStroke(c,x,y,r){
 
 // ── SHOP UI ───────────────────────────────────────────────
 let shopFrom='menu';
+const MOBILE_BTNS = ['ctrl-left','btn-shoot','btn-reload','btn-switch','btn-util'];
+
 function openShop(from='menu'){
   shopFrom=from;
   G.shopOpen=true;
   document.getElementById('shop-money').textContent=G.money;
+  // Ascunde butoanele mobile ca să nu blocheze shop-ul
+  MOBILE_BTNS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
+  });
   showScreen('shop');
   setShopTab(G.shopTab);
 }
 function closeShop(){
   G.shopOpen=false;
-  if(shopFrom==='game'){
-    showScreen(null);
+  // Ascunde shop forțat
+  const shopEl=document.getElementById('shop');
+  shopEl.classList.remove('active');
+  shopEl.style.display='none';
+
+  if(shopFrom==='game'||G.gameStarted){
+    // Întoarce la joc
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     document.getElementById('hud').style.display='block';
-    document.getElementById('ctrl-left').style.display='block';
-    document.getElementById('ctrl-right').style.display='block';
+    MOBILE_BTNS.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display='flex';
+    });
+    if(!running&&waveActive){
+      running=true; lastT=performance.now();
+      requestAnimationFrame(loop);
+    }
   } else if(shopFrom==='between'){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     document.getElementById('between-screen').style.display='flex';
   } else {
     showScreen('menu');
+    shopEl.style.display='';
   }
 }
 function setShopTab(tab){
@@ -823,6 +844,7 @@ function startGame(){
   enemies=[]; bullets=[]; particles=[]; grenadeExplosions=[];
 
   showScreen(null);
+  G.gameStarted=true;
   document.getElementById('hud').style.display='block';
   document.getElementById('between-screen').style.display='none';
   // Arată controale mobile
@@ -1272,6 +1294,7 @@ function updateHUD(){
 // ── GAME OVER ─────────────────────────────────────────────
 function gameOver(){
   running=false;
+  G.gameStarted=false;
   const bw=document.getElementById('between-screen');
   bw.style.display='flex';
   document.getElementById('bw-title').textContent='GAME OVER';
