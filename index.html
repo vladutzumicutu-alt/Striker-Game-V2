@@ -133,14 +133,14 @@ canvas{position:fixed;top:0;left:0;display:block;}
 .util-slot .u-cd{position:absolute;inset:0;background:rgba(0,0,0,.65);border-radius:5px;display:none;align-items:center;justify-content:center;font-size:10px;color:#fff;}
 .util-slot.active-util{border-color:var(--accent2);}
 
-/* ── BOTTOM-RIGHT: Weapon HUD ── */
+/* ── TOP-RIGHT: Weapon HUD (sub active effects) ── */
 #weapon-hud{
-  position:absolute;bottom:370px;right:10px;
+  position:absolute;top:48px;right:10px;
   text-align:right;
   background:rgba(8,12,16,.75);
   padding:6px 10px;border-radius:6px;
   border:1px solid rgba(255,255,255,.07);
-  min-width:110px;max-width:150px;
+  min-width:100px;max-width:140px;
 }
 #weapon-name{font-size:10px;color:var(--accent);letter-spacing:2px;margin-bottom:2px;}
 #ammo-display{font-size:20px;color:#fff;font-weight:bold;line-height:1;}
@@ -160,8 +160,12 @@ canvas{position:fixed;top:0;left:0;display:block;}
   letter-spacing:1px;padding:3px 10px;border-radius:3px;cursor:pointer;
 }
 
-/* Active effects — sus dreapta, sub top bar ── */
-#active-effects{position:absolute;top:48px;right:10px;display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
+/* Active effects — centru jos, deasupra barelor */
+#active-effects{
+  position:absolute;bottom:290px;left:50%;
+  transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:3px;align-items:center;
+}
 .effect-badge{font-size:8px;letter-spacing:1px;padding:2px 7px;border-radius:3px;display:flex;align-items:center;gap:4px;}
 .effect-timer{font-size:9px;color:#fff;font-weight:bold;}
 
@@ -773,8 +777,8 @@ document.addEventListener('keydown',e=>{keys[e.code]=true;
 });
 document.addEventListener('keyup',e=>keys[e.code]=false);
 
-// Mouse
-let mouseX=W/2, mouseY=H/2;
+// Mouse — initializat departe de ecran ca sa nu afecteze mobile
+let mouseX=-9999, mouseY=-9999;
 document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY;});
 document.addEventListener('mousedown',e=>{if(e.button===0)shooting=true;});
 document.addEventListener('mouseup',e=>{if(e.button===0)shooting=false;});
@@ -925,10 +929,9 @@ function updatePlayer(dt){
   G.x=Math.max(16,Math.min(W-16,G.x+dx*spd*s));
   G.y=Math.max(16,Math.min(H-16,G.y+dy*spd*s));
 
-  // Aim — pe mobil: vizăm automat cel mai apropiat inamic, sau păstrăm ultimul unghi
+  // Aim — pe mobil: auto-aim spre cel mai apropiat inamic, păstrăm ultimul unghi
   const isMobile='ontouchstart' in window;
   if(isMobile){
-    // Auto-aim spre cel mai apropiat inamic vizibil
     const alive=enemies.filter(e=>e.alive);
     if(alive.length>0){
       const nearest=alive.reduce((a,b)=>{
@@ -938,9 +941,8 @@ function updatePlayer(dt){
       });
       G.angle=Math.atan2(nearest.y-G.y, nearest.x-G.x);
     }
-    // dacă nu sunt inamici, păstrăm ultimul unghi (nu resetăm)
+    // dacă nu sunt inamici, NU resetăm unghiul — rămâne unde era
   } else {
-    // PC: aim spre mouse
     G.angle=Math.atan2(mouseY-G.y, mouseX-G.x);
   }
 
