@@ -16,7 +16,7 @@ body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;
 canvas{position:fixed;top:0;left:0;display:block;}
 
 /* ── SCREENS ── */
-.screen{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,16,0.97);}
+.screen{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,12,16,0.97);}
 .screen.active{display:flex;}
 
 /* ── MAIN MENU ── */
@@ -655,33 +655,37 @@ function drawShapeStroke(c,x,y,r){
 let shopFrom='menu';
 const MOBILE_BTNS = ['ctrl-left','btn-shoot','btn-reload','btn-switch','btn-util'];
 
+function hideMobileBtns(){
+  MOBILE_BTNS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.style.visibility='hidden'; el.style.pointerEvents='none'; }
+  });
+}
+function showMobileBtns(){
+  MOBILE_BTNS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.style.visibility='visible'; el.style.pointerEvents='all'; el.style.display='flex'; }
+  });
+}
+
 function openShop(from='menu'){
   shopFrom=from;
   G.shopOpen=true;
   document.getElementById('shop-money').textContent=G.money;
-  // Ascunde butoanele mobile ca să nu blocheze shop-ul
-  MOBILE_BTNS.forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.style.display='none';
-  });
+  hideMobileBtns();
   showScreen('shop');
   setShopTab(G.shopTab);
 }
 function closeShop(){
   G.shopOpen=false;
-  // Ascunde shop forțat
   const shopEl=document.getElementById('shop');
   shopEl.classList.remove('active');
   shopEl.style.display='none';
 
   if(shopFrom==='game'||G.gameStarted){
-    // Întoarce la joc
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     document.getElementById('hud').style.display='block';
-    MOBILE_BTNS.forEach(id=>{
-      const el=document.getElementById(id);
-      if(el) el.style.display='flex';
-    });
+    showMobileBtns();
     if(!running&&waveActive){
       running=true; lastT=performance.now();
       requestAnimationFrame(loop);
@@ -690,8 +694,8 @@ function closeShop(){
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     document.getElementById('between-screen').style.display='flex';
   } else {
-    showScreen('menu');
     shopEl.style.display='';
+    showScreen('menu');
   }
 }
 function setShopTab(tab){
